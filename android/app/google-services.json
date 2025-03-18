@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "821082642821",
+    "firebase_url": "https://easyorder-b5670-default-rtdb.europe-west1.firebasedatabase.app",
+    "project_id": "easyorder-b5670",
+    "storage_bucket": "easyorder-b5670.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:821082642821:android:82a43372556f66c97e0cec",
+        "android_client_info": {
+          "package_name": "com.easyorder"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBhBQyi3pJ1kHsMJBiuEwFBi_Yr1o1i6E8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
