@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, Button, Alert, TouchableOpacity, ImageBackground } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
@@ -41,12 +41,18 @@ const Login = () => {
     }
   };
 
+  useEffect(() => {
+      navigation.setOptions({ title: "Incio de sesión" })
+  
+    })
+
   return (
     <ImageBackground
         source={require('../assets/fondoRes.jpg')}
         style={styles.background}>
     <View style={styles.container}>
-      <Text style={styles.title}>Bienvenido</Text>
+      <Text style={styles.title}>Bienvenido a EasyOrder</Text>
+      <Text style={styles.subtitle}>Incia sesión para usar la app</Text>
       <TextInput
         style={styles.input}
         placeholder="Correo electrónico"
@@ -54,18 +60,20 @@ const Login = () => {
         onChangeText={setEmail}
         keyboardType="email-address"
         autoCapitalize="none"
+        placeholderTextColor="white"
       />
       <TextInput
         style={styles.input}
         placeholder="Contraseña"
         value={password}
         onChangeText={setPassword}
+        autoCapitalize="none"
         secureTextEntry
+        placeholderTextColor="white"
       />
       {/* No es necesario pasar parámetros a handleLogin */}
       <Button title="Iniciar Sesión" onPress={handleLogin} />
       
-      {/* Navegar a la pantalla de registro */}
       <TouchableOpacity onPress={() => navigation.navigate('Register')}>
         <Text style={styles.text}>¿No tienes cuenta? <Text style={styles.link}>Regístrate aquí</Text></Text>
       </TouchableOpacity>
