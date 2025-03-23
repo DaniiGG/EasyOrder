@@ -8,7 +8,7 @@ import styles from '../styles/LoginStyles';
 
 type RootStackParamList = {
   Login: undefined;
-  Register: undefined; // Agregar la pantalla de registro al stack
+  Register: undefined; // Agregar la pantalla de registro al stack das
   Home: undefined;
 };
 
