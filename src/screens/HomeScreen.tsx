@@ -1,16 +1,15 @@
 import React, { useEffect, useState, useLayoutEffect } from 'react';
-import { View, Text, Button, Alert, StyleSheet, Image, TouchableOpacity  } from 'react-native';
+import { View, Text, Button, Alert, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 
-
 type RootStackParamList = {
-  Login: undefined; // Ruta Login no necesita parámetros
-  Home: undefined;  // Ruta Home no necesita parámetros
+  Login: undefined;
+  Home: undefined;
   Register: undefined;
   Settings: undefined;
-Profile: { userId: string };
+  Profile: { userId: string };
 };
 
 type HomeScreenProps = NativeStackScreenProps<RootStackParamList, 'Home'>;
@@ -18,27 +17,27 @@ type HomeScreenProps = NativeStackScreenProps<RootStackParamList, 'Home'>;
 const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const [userName, setUserName] = useState<string | null>(null);
   const [menuVisible, setMenuVisible] = useState<boolean>(false);
-  const [isConfigured, setIsConfigured] = useState<boolean | null>(null);
+  const [isConfigured, setIsConfigured] = useState<boolean>(false);
+  const [isOwner, setIsOwner] = useState<boolean>(false);
   const user = auth().currentUser;
 
   const toggleMenu = () => {
-    setMenuVisible((prevState) => !prevState);  // Cambiar el estado para mostrar u ocultar el menú
+    setMenuVisible((prevState) => !prevState);
   };
 
   const handleOptionPress = (option: string) => {
     console.log(`Seleccionaste: ${option}`);
-    setMenuVisible(false);  // Cerrar el menú después de seleccionar una opción
+    setMenuVisible(false);
 
-    // Aquí puedes añadir la lógica para cada opción
     switch (option) {
       case 'Profile':
-        navigation.navigate('Login');  // Navegar a la pantalla de perfil
+        navigation.navigate('Profile', { userId: user?.uid || '' });
         break;
       case 'Settings':
-        navigation.navigate('Settings');  // Navegar a la pantalla de ajustes
+        navigation.navigate('Settings');
         break;
       case 'Logout':
-        // Lógica para cerrar sesión
+        handleLogout();
         break;
       default:
         break;
@@ -46,35 +45,73 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   };
 
   useEffect(() => {
-    const fetchUserName = async () => {
+    const fetchUserData = async () => {
       if (!user) return;
-
+  
       try {
         const userDoc = await firestore().collection('users').doc(user.uid).get();
         if (userDoc.exists) {
-          const name = userDoc.data()?.name || 'Usuario';
-          setUserName(name);
+          const data = userDoc.data();
+          setUserName(data?.name || 'Usuario');
+  
+          // 🔹 Verificar si el usuario es dueño
+          if (data?.role === 'admin') {
+            setIsOwner(true);
+  
+            // 🔹 Verificar si el restaurante está configurado
+            if (data?.restaurantId) {
+              const restaurantDoc = await firestore().collection('restaurants').doc(data.restaurantId).get();
+              if (restaurantDoc.exists) {
+                const restaurantData = restaurantDoc.data();
+  
+                // ✅ Verificación más segura de los campos obligatorios
+                const hasRequiredFields =
+                  restaurantData?.name && restaurantData.name.trim() !== '' &&
+                  restaurantData?.location && restaurantData.location.trim() !== '' &&
+                  restaurantData?.email && restaurantData.email.trim() !== '' &&
+                  restaurantData?.phoneNumber && restaurantData.phoneNumber.trim() !== '' 
+  
+                setIsConfigured(hasRequiredFields);
+              } else {
+                setIsConfigured(false);
+              }
+            } else {
+              setIsConfigured(false);
+            }
+          }
         }
       } catch (error) {
-        console.error('Error obteniendo el nombre:', error);
+        console.error('Error obteniendo datos del usuario:', error);
       }
     };
-
-    fetchUserName();
+  
+    fetchUserData();
   }, [user]);
 
   useLayoutEffect(() => {
     if (userName) {
-      navigation.setOptions({ title: `Bienvenido, ${userName}`,
+      navigation.setOptions({
+        title: `Bienvenido, ${userName}`,
         headerRight: () => (
-          <TouchableOpacity onPress={toggleMenu}>
-          <Image
-              source={require('../assets/iconoCamarero.png')} // Ruta de imagen predeterminada si no hay foto
-              style={{ width: 40, height: 40, borderRadius: 5, marginRight: 15 }}
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <TouchableOpacity onPress={() => navigation.navigate('Settings')} style={{ marginRight: 15 }}>
+            <Image
+              source={require('../assets/iconoAjustes.png')}
+              style={{ width: 30, height: 30, borderRadius: 5 }}
             />
           </TouchableOpacity>
+          <TouchableOpacity onPress={toggleMenu} style={{ marginRight: 15 }}>
+            <Image
+              source={require('../assets/iconoUsuario.png')}
+              style={{ width: 30, height:30, borderRadius: 5 }}
+            />
+          </TouchableOpacity>
+
+          {/* 🔹 Botón 2 - Configuración */}
+          
+        </View>
         ),
-       });
+      });
     }
   }, [navigation, userName]);
 
@@ -87,28 +124,30 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     Alert.alert('Sesión cerrada', 'Has cerrado sesión exitosamente.');
   };
 
-  const handleSettings = async () => {
-    navigation.navigate("Settings")
+  const handleSettings = () => {
+    navigation.navigate('Settings');
   };
-
 
   return (
     <View style={styles.container}>
       <Text>Bienvenido, {userName}</Text>
-      <Button title="Configurar restaurante" onPress={handleSettings} />
+
+      {/* 🔹 Mostrar botón solo si el usuario es dueño y el restaurante no está configurado */}
+      {isOwner && !isConfigured && (
+        <Button title="Configurar restaurante" onPress={handleSettings} />
+      )}
+
       {menuVisible && (
         <View style={styles.menu}>
           <TouchableOpacity onPress={() => handleOptionPress('Profile')}>
             <Text style={styles.optionText}>Ver Perfil</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => handleOptionPress('Settings')}>
-            <Text style={styles.optionText}>Ajustes</Text>
-          </TouchableOpacity>
           <TouchableOpacity onPress={() => handleOptionPress('Logout')}>
-            <Text style={styles.optionText} onPress={handleLogout}>Cerrar Sesión</Text>
+            <Text style={styles.optionText}>Cerrar Sesión</Text>
           </TouchableOpacity>
         </View>
       )}
+
       <View style={styles.imageContainer}>
         <Image source={require('../assets/aa.png')} style={styles.image} />
         <Text style={styles.number}>42</Text>
@@ -146,12 +185,12 @@ const styles = StyleSheet.create({
   },
   menu: {
     position: 'absolute',
-    top: 0,  // Ajusta la distancia desde la parte superior de la pantalla
-    right: 0,  // Ajusta la distancia desde la parte derecha de la pantalla
+    top: 0,
+    right: 0,
     backgroundColor: 'white',
     padding: 10,
     borderRadius: 0,
-    elevation: 2,  // Sombra para dar la apariencia de un menú emergente
+    elevation: 2,
   },
   optionText: {
     fontSize: 18,

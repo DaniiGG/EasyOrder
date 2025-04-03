@@ -21,29 +21,37 @@ const Register = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
   useEffect(() => {
-    navigation.setOptions({ title: "Registro" });
-  }, []);
+        navigation.setOptions({ title: "EasyOrder™" ,
+        headerRight: () => (
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <Text style={{ color:'white', fontSize:24, fontWeight: 'bold' }}>𓆰𓆪</Text>
+          </View>
+        )
+        })
+    
+      })
 
   const handleRegister = async () => {
     try {
       const userCredential = await auth().createUserWithEmailAndPassword(email, password);
       const uid = userCredential.user.uid;
-
+  
       if (role === 'owner') {
         // Registrar un nuevo restaurante
         const restaurantRef = await firestore().collection('restaurants').add({
           name: restaurantName,
-          owner: uid
+          ownerId: uid,
+          createdAt: firestore.FieldValue.serverTimestamp(),
         });
-
+  
         // Guardar usuario con rol de dueño
         await firestore().collection('users').doc(uid).set({
           email,
           name,
           role: 'admin',
-          restaurantId: restaurantRef.id,
+          restaurantId: restaurantRef.id, // Usamos el ID del restaurante, no el UID
         });
-
+  
       } else if (role === 'employee') {
         // Validar código de restaurante
         const restaurantSnapshot = await firestore().collection('restaurants').doc(restaurantCode).get();
@@ -51,19 +59,19 @@ const Register = () => {
           Alert.alert('Error', 'Código de restaurante inválido.');
           return;
         }
-
+  
         // Guardar usuario con rol de empleado
         await firestore().collection('users').doc(uid).set({
           email,
           name,
-          role: 'camarero',
+          role: 'employee',
           restaurantId: restaurantCode,
         });
       }
-
+  
       Alert.alert('Registro exitoso', '¡Tu cuenta ha sido creada!');
       navigation.navigate('Home');
-
+  
     } catch (error: any) {
       Alert.alert('Error', error.message || 'No se pudo crear la cuenta.');
     }

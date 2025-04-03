@@ -42,7 +42,13 @@ const Login = () => {
   };
 
   useEffect(() => {
-      navigation.setOptions({ title: "Incio de sesión" })
+      navigation.setOptions({ title: "EasyOrder™" ,
+      headerRight: () => (
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+        <Text style={{ color:'white', fontSize:24, fontWeight: 'bold' }}>𓆰𓆪</Text>
+        </View>
+      )
+      })
   
     })
 
