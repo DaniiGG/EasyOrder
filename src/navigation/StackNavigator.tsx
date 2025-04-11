@@ -8,6 +8,8 @@ import SettingsScreen from '../screens/SettingsScreen';
 import ResInfo from '../screens/ResInfo';
 import MesasInfo from '../screens/MesasInfo';
 import MenuInfo from '../screens/MenuInfo';
+import AddMenu from '../screens/AddMenu';
+import EditMenu from '../screens/EditMenu';
 
 type RootStackParamList = {
     Login: undefined; // Ruta Login no necesita parámetros
@@ -16,7 +18,9 @@ type RootStackParamList = {
     Settings: undefined;
     ResInfo: undefined;
     MesasInfo: undefined;
+    AddMenu: undefined;
     MenuInfo: undefined;
+    EditMenu:undefined;
   Profile: { userId: string };
   };
 
@@ -38,6 +42,8 @@ const StackNavigator = () => {
           <Stack.Screen name="ResInfo" component={ResInfo} />
           <Stack.Screen name="MesasInfo" component={MesasInfo} />
           <Stack.Screen name="MenuInfo" component={MenuInfo} />
+          <Stack.Screen name="AddMenu" component={AddMenu} />
+          <Stack.Screen name="EditMenu" component={EditMenu} />
           <Stack.Screen name="Home" component={HomeScreen} options={{ title: "Cargando..." }} />
       </Stack.Navigator>
     </NavigationContainer>
