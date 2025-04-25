@@ -26,6 +26,7 @@ enum DishType {
   SecondoCourse = 'Segundo Plato',
   Dessert = 'Postre',
   Beverage = 'Bebida',
+  Tapa = 'Tapa',
 }
 
 type MenuItem = {

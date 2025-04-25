@@ -11,6 +11,7 @@ enum DishType {
   SecondoCourse = 'Segundo Plato',
   Dessert = 'Postre',
   Beverage = 'Bebida',
+  Tapa = 'Tapa',
 }
 
 const EditMenu = () => {
@@ -149,6 +150,9 @@ const EditMenu = () => {
             </TouchableOpacity>
             <TouchableOpacity onPress={() => handleSelectDishType(DishType.Beverage)}>
               <Text style={styles.modalItem}>Bebida</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => handleSelectDishType(DishType.Tapa)}>
+              <Text style={styles.modalItem}>Tapa</Text>
             </TouchableOpacity>
             <Button title="Cerrar" onPress={() => setModalVisible(false)} />
           </View>

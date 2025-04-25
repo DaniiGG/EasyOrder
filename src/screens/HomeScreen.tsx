@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useLayoutEffect } from 'react';
-import { View, Text, Button, Alert, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import { View, Text, Button, Alert, StyleSheet, Image, TouchableOpacity, FlatList } from 'react-native';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -9,6 +9,8 @@ type RootStackParamList = {
   Home: undefined;
   Register: undefined;
   Settings: undefined;
+  OrderScreen: { tableId: string };
+  OrderDetails:{ orderId: string };
   Profile: { userId: string };
 };
 
@@ -19,6 +21,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const [menuVisible, setMenuVisible] = useState<boolean>(false);
   const [isConfigured, setIsConfigured] = useState<boolean>(false);
   const [isOwner, setIsOwner] = useState<boolean>(false);
+  const [tables, setTables] = useState<{ id: string; numero: string; status: string; PedidoId: string }[]>([]);
   const user = auth().currentUser;
 
   const toggleMenu = () => {
@@ -88,6 +91,45 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     fetchUserData();
   }, [user]);
 
+  useEffect(() => {
+    const fetchTables = async () => {
+      try {
+        const user = auth().currentUser;
+        if (!user) {
+          Alert.alert('Error', 'Usuario no autenticado.');
+          return;
+        }
+
+        const userDoc = await firestore().collection('users').doc(user.uid).get();
+        const userData = userDoc.data();
+        const restaurantId = userData?.restaurantId;
+
+        if (!restaurantId) {
+          Alert.alert('Error', 'No se encontró el ID del restaurante.');
+          return;
+        }
+
+        const tablesSnapshot = await firestore()
+          .collection('restaurants')
+          .doc(restaurantId)
+          .collection('tables')
+          .get();
+
+        const tablesData = tablesSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+
+        setTables(tablesData as { id: string; numero: string; status: string; PedidoId: string }[]);
+      } catch (error) {
+        console.error('Error fetching tables:', error);
+        Alert.alert('Error', 'No se pudieron obtener las mesas.');
+      }
+    };
+
+    fetchTables();
+  }, []);
+
   useLayoutEffect(() => {
     if (userName) {
       navigation.setOptions({
@@ -128,9 +170,33 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     navigation.navigate('Settings');
   };
 
+  const handleTableClick = (table: { id: string; numero: string; status: string; PedidoId: string }) => {
+    if (table.status === 'occupied') {
+      navigation.navigate('OrderDetails', { orderId: table.PedidoId });
+    } else {
+      navigation.navigate('OrderScreen', { tableId: table.id });
+    }
+  };
+
   return (
     <View style={styles.container}>
-      <Text>Bienvenido, {userName}</Text>
+      <View style={styles.container}>
+      <Text style={styles.title}>Mesas del Restaurante</Text>
+      <FlatList
+        data={tables}
+        keyExtractor={item => item.id}
+        renderItem={({ item }) => (
+          <TouchableOpacity onPress={() => handleTableClick(item)}>
+            <Image
+              source={item.status === 'occupied' ? require('../assets/iconoMesaRed.png') : require('../assets/iconoMesa.png')} // Use different images for occupied and free tables
+              style={styles.tableImage}
+            />
+            <Text style={styles.tableNumber}>Mesa {item.numero}</Text>
+          </TouchableOpacity>
+        )}
+        numColumns={3} // Adjust the number of columns as needed
+      />
+    </View>
 
       {/* 🔹 Mostrar botón solo si el usuario es dueño y el restaurante no está configurado */}
       {isOwner && !isConfigured && (
@@ -148,10 +214,10 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         </View>
       )}
 
-      <View style={styles.imageContainer}>
+      {/* <View style={styles.imageContainer}>
         <Image source={require('../assets/aa.png')} style={styles.image} />
         <Text style={styles.number}>42</Text>
-      </View>
+      </View> */}
     </View>
   );
 };
@@ -195,6 +261,21 @@ const styles = StyleSheet.create({
   optionText: {
     fontSize: 18,
     paddingVertical: 10,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  tableImage: {
+    width: 100,
+    height: 100,
+    margin: 10,
+  },
+  tableNumber: {
+    textAlign: 'center',
+    fontSize: 16,
   },
 });
 
