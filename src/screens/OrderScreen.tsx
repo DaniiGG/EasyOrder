@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, Button, StyleSheet, Alert } from 'react-native';
+import { View, Text, FlatList, Button, StyleSheet, Alert, TouchableOpacity, Image } from 'react-native';
 import firestore from '@react-native-firebase/firestore';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import auth from '@react-native-firebase/auth';
 
 type MenuItem = {
   id: string;
+  image: string;
   name: string;
   price: number;
   quantity: number;
@@ -16,7 +17,7 @@ const OrderScreen = () => {
   const [selectedItems, setSelectedItems] = useState<{ [key: string]: number }>({});
   const route = useRoute();
   const navigation = useNavigation();
-  const { tableId, orderedItems } = route.params as { tableId: string, orderedItems: { [key: string]: number } };
+  const { tableId, orderedItems, pedidoId } = route.params as { tableId: string, orderedItems: { [key: string]: number }, pedidoId?: string };
 
   useEffect(() => {
     const fetchMenuItems = async () => {
@@ -93,31 +94,68 @@ const OrderScreen = () => {
         return acc;
       }, {} as { [key: string]: number });
 
-      const orderRef = firestore()
-        .collection('restaurants')
-        .doc(restaurantId)
-        .collection('orders')
-        .doc();
+      if (pedidoId) {
+        // Update existing order using pedidoId
+        const orderDoc = await firestore()
+          .collection('restaurants')
+          .doc(restaurantId)
+          .collection('orders')
+          .doc(pedidoId)
+          .get();
 
-      await orderRef.set({
-        tableId,
-        items: filteredItems,
-        status: 'pending',
-        createdAt: firestore.Timestamp.now(),
-      });
+        if (orderDoc.exists) {
+          const currentOrderData = orderDoc.data() as { items: { [key: string]: number } };
+          const updatedItems = { ...currentOrderData.items };
 
-      await firestore()
-        .collection('restaurants')
-        .doc(restaurantId)
-        .collection('tables')
-        .doc(tableId)
-        .update({ status: 'occupied', PedidoId: orderRef.id });
+          // Sum the new quantities with the existing ones
+          for (const itemId in filteredItems) {
+            if (filteredItems.hasOwnProperty(itemId)) {
+              updatedItems[itemId] = (currentOrderData.items[itemId] || 0) + filteredItems[itemId];
+            }
+          }
 
-      Alert.alert('Éxito', 'Pedido creado correctamente.');
+          await firestore()
+            .collection('restaurants')
+            .doc(restaurantId)
+            .collection('orders')
+            .doc(pedidoId)
+            .update({
+              items: updatedItems,
+            });
+
+          Alert.alert('Éxito', 'Pedido actualizado correctamente.');
+        } else {
+          Alert.alert('Error', 'No se encontró el pedido existente.');
+        }
+      } else {
+        // Create new order
+        const orderRef = firestore()
+          .collection('restaurants')
+          .doc(restaurantId)
+          .collection('orders')
+          .doc();
+
+        await orderRef.set({
+          tableId,
+          items: filteredItems,
+          status: 'pending',
+          createdAt: firestore.Timestamp.now(),
+        });
+
+        await firestore()
+          .collection('restaurants')
+          .doc(restaurantId)
+          .collection('tables')
+          .doc(tableId)
+          .update({ status: 'occupied', PedidoId: orderRef.id });
+
+        Alert.alert('Éxito', 'Pedido creado correctamente.');
+      }
+
       navigation.goBack();
     } catch (error) {
-      console.error('Error creating order:', error);
-      Alert.alert('Error', 'No se pudo crear el pedido.');
+      console.error('Error creating or updating order:', error);
+      Alert.alert('Error', 'No se pudo crear o actualizar el pedido.');
     }
   };
 
@@ -129,16 +167,25 @@ const OrderScreen = () => {
         keyExtractor={item => item.id}
         renderItem={({ item }) => (
           <View style={styles.menuItem}>
-            <Text>{item.name} - ${item.price}</Text>
-            <Text>Cantidad: {selectedItems[item.id] || 0}</Text>
-            <Button
-              title="Añadir"
-              onPress={() => handleSelectItem(item.id, (selectedItems[item.id] || 0) + 1)}
+            <Image
+              source={{ uri: item.image }} // Assuming item.image contains the image URL
+              style={styles.menuItemImage}
             />
-            <Button
-              title="Quitar"
-              onPress={() => handleSelectItem(item.id, Math.max((selectedItems[item.id] || 0) - 1, 0))}
-            />
+            <View style={styles.menuItemDetails}>
+              <View>
+                <Text>{item.name}</Text>
+                <Text>Precio: {item.price} €</Text>
+              </View>
+              <View style={styles.quantityRow}>
+                <TouchableOpacity onPress={() => handleSelectItem(item.id, Math.max((selectedItems[item.id] || 0) - 1, 0))}>
+                  <Text style={styles.controlButton}>-</Text>
+                </TouchableOpacity>
+                <Text style={styles.quantityText}>{selectedItems[item.id] || 0}</Text>
+                <TouchableOpacity onPress={() => handleSelectItem(item.id, (selectedItems[item.id] || 0) + 1)}>
+                  <Text style={styles.controlButton}>+</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
           </View>
         )}
       />
@@ -160,9 +207,34 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   menuItem: {
+    flexDirection: 'row', // Align items horizontally
     padding: 10,
     borderBottomWidth: 1,
     borderBottomColor: 'gray',
+  },
+  menuItemImage: {
+    width: 50,
+    height: 50,
+    marginRight: 10,
+  },
+  menuItemDetails: {
+    flexDirection: 'row', // Align details and controls horizontally
+    justifyContent: 'space-between', // Space between details and controls
+    alignItems: 'center',
+    flex: 1, // Allow the details to take up remaining space
+  },
+  quantityRow: {
+    flexDirection: 'row', // Align quantity text and controls horizontally
+    alignItems: 'center',
+  },
+  controlButton: {
+    fontSize: 20,
+    marginHorizontal: 10,
+    color: '#007BFF',
+  },
+  quantityText: {
+    fontSize: 18,
+    marginHorizontal: 10,
   },
 });
 

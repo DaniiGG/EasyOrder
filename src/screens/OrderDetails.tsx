@@ -1,77 +1,81 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, Alert, Image, TouchableOpacity, Button } from 'react-native'; // Added Button
 import firestore from '@react-native-firebase/firestore';
-import { useRoute } from '@react-navigation/native';
+import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native'; // Import useFocusEffect
 import auth from '@react-native-firebase/auth';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+
+type RootStackParamList = {
+  Login: undefined;
+  Register: undefined; // Agregar la pantalla de registro al stack das
+  Home: undefined;
+  OrderScreen: { tableId: string; orderedItems: { [key: string]: number }; pedidoId: string };
+};
 
 const OrderDetails = () => {
-  const [order, setOrder] = useState<{ items: { [key: string]: number }; status: string } | null>(null);
+  const [order, setOrder] = useState<{ items: { [key: string]: number }; status: string; tableId: string } | null>(null);
   const [menuItems, setMenuItems] = useState<{ id: string; image: string; name: string; price: number }[]>([]);
   const [updatedQuantities, setUpdatedQuantities] = useState<{ [key: string]: number }>({}); // State for updated quantities
   const route = useRoute();
   const { orderId } = route.params as { orderId: string };
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
-  useEffect(() => {
-    const fetchOrderDetails = async () => {
-      try {
-        const user = auth().currentUser;
-        if (!user) {
-          Alert.alert('Error', 'Usuario no autenticado.');
-          return;
-        }
+  useFocusEffect(
+    useCallback(() => {
+      const fetchOrderDetails = async () => {
+        try {
+          const user = auth().currentUser;
+          if (!user) {
+            Alert.alert('Error', 'Usuario no autenticado.');
+            return;
+          }
 
-        const userDoc = await firestore().collection('users').doc(user.uid).get();
-        const userData = userDoc.data();
-        const restaurantId = userData?.restaurantId;
+          const userDoc = await firestore().collection('users').doc(user.uid).get();
+          const userData = userDoc.data();
+          const restaurantId = userData?.restaurantId;
 
-        if (!restaurantId) {
-          Alert.alert('Error', 'No se encontró el ID del restaurante.');
-          return;
-        }
+          if (!restaurantId) {
+            Alert.alert('Error', 'No se encontró el ID del restaurante.');
+            return;
+          }
 
-        const orderDoc = await firestore()
-          .collection('restaurants')
-          .doc(restaurantId)
-          .collection('orders')
-          .doc(orderId)
-          .get();
-
-        if (orderDoc.exists) {
-          const orderData = orderDoc.data() as { items: { [key: string]: number }; status: string };
-          setOrder(orderData);
-
-          // Initialize updatedQuantities with zero for each item
-          const initialQuantities = Object.keys(orderData.items).reduce((acc, itemId) => {
-            acc[itemId] = 0;
-            return acc;
-          }, {} as { [key: string]: number });
-
-          setUpdatedQuantities(initialQuantities);
-
-          // Fetch menu items data
-          const menuSnapshot = await firestore()
+          const orderDoc = await firestore()
             .collection('restaurants')
             .doc(restaurantId)
-            .collection('menus')
+            .collection('orders')
+            .doc(orderId)
             .get();
 
-          const menuData = menuSnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data(),
-          }));
+          if (orderDoc.exists) {
+            const orderData = orderDoc.data() as { items: { [key: string]: number }; status: string; tableId: string };
+            console.log('Order Data:', orderData); // Debugging log
+            setOrder(orderData);
 
-          setMenuItems(menuData as { id: string; image: string; name: string; price: number }[]);
-        } else {
-          Alert.alert('Error', 'No se encontró el pedido.');
+            // Fetch menu items data
+            const menuSnapshot = await firestore()
+              .collection('restaurants')
+              .doc(restaurantId)
+              .collection('menus')
+              .get();
+
+            const menuData = menuSnapshot.docs.map(doc => ({
+              id: doc.id,
+              ...doc.data(),
+            }));
+
+            setMenuItems(menuData as { id: string; image: string; name: string; price: number }[]);
+          } else {
+            Alert.alert('Error', 'No se encontró el pedido.');
+          }
+        } catch (error) {
+          console.error('Error fetching order details:', error);
+          Alert.alert('Error', 'No se pudieron obtener los detalles del pedido.');
         }
-      } catch (error) {
-        console.error('Error fetching order details:', error);
-        Alert.alert('Error', 'No se pudieron obtener los detalles del pedido.');
-      }
-    };
+      };
 
-    fetchOrderDetails();
-  }, [orderId]);
+      fetchOrderDetails();
+    }, [orderId])
+  );
 
   const handleQuantityChange = (itemId: string, change: number) => {
     setUpdatedQuantities(prevState => {
@@ -88,7 +92,7 @@ const OrderDetails = () => {
       return prevState;
     });
   };
-
+  
   const applyQuantityChanges = async () => {
     if (!order) return;
   
@@ -156,7 +160,6 @@ const OrderDetails = () => {
           <Text>Estado: {order.status}</Text>
           {Object.entries(order.items).map(([itemId, quantity]) => {
             const menuItem = menuItems.find(item => item.id === itemId);
-            const change = updatedQuantities[itemId] || 0; // Define the change variable
             return menuItem ? (
               <View key={itemId} style={styles.menuItem}>
                 <Image
@@ -165,24 +168,24 @@ const OrderDetails = () => {
                 />
                 <View style={styles.menuItemDetails}>
                   <Text>{menuItem.name}</Text>
-                  <Text>Precio: {menuItem.price}€</Text>
-                  <View style={styles.quantityRow}>
-                    <Text>Cantidad: {quantity}</Text>
-                    <View style={styles.quantityControls}>
-                      <TouchableOpacity onPress={() => handleQuantityChange(itemId, -1)}>
-                        <Text style={styles.controlButton}>-</Text>
-                      </TouchableOpacity>
-                      <Text style={styles.quantityText}>{change}</Text> {/* Use the change variable */}
-                      <TouchableOpacity onPress={() => handleQuantityChange(itemId, 1)}>
-                        <Text style={styles.controlButton}>+</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
+                  <Text>Precio: {menuItem.price} €</Text>
+                  <Text>Cantidad Pedida: {quantity}</Text>
                 </View>
               </View>
             ) : null;
           })}
-          <Button title="Aplicar Cambios" onPress={applyQuantityChanges} />
+          <Button 
+            title="Pedir Más" 
+            onPress={() => {
+              if (order) {
+                navigation.navigate('OrderScreen', { 
+                  tableId: order.tableId, 
+                  orderedItems: order.items,
+                  pedidoId: orderId // Pass the order ID to OrderScreen
+                });
+              }
+            }} 
+          />
         </View>
       ) : (
         <Text>Cargando...</Text>
@@ -217,24 +220,6 @@ const styles = StyleSheet.create({
   menuItemDetails: {
     justifyContent: 'center',
     flex: 1, // Allow the details to take up remaining space
-  },
-  quantityRow: {
-    flexDirection: 'row', // Align quantity text and controls horizontally
-    alignItems: 'center',
-    justifyContent: 'space-between', // Space between text and controls
-  },
-  quantityControls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  controlButton: {
-    fontSize: 20,
-    marginHorizontal: 10,
-    color: '#007BFF',
-  },
-  quantityText: {
-    fontSize: 18,
-    marginHorizontal: 10,
   },
 });
 
