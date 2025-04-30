@@ -20,7 +20,12 @@ const OrderScreen = () => {
   const { tableId, orderedItems, pedidoId } = route.params as { tableId: string, orderedItems: { [key: string]: number }, pedidoId?: string };
 
   useEffect(() => {
-    const fetchMenuItems = async () => {
+    navigation.setOptions({ title: "Hacer Pedido" 
+    })
+  })
+  
+  useEffect(() => {
+    const fetchMenuItemsAndOrder = async () => {
       try {
         const user = auth().currentUser;
         if (!user) {
@@ -49,18 +54,30 @@ const OrderScreen = () => {
           quantity: 0, // Initialize quantity
         }));
 
-        console.log('Fetched menu data:', menuData); // Log fetched menu data
-
-        // Remove filtering logic
         setMenuItems(menuData as MenuItem[]);
+
+        // Fetch existing order details if pedidoId is provided
+        if (pedidoId) {
+          const orderDoc = await firestore()
+            .collection('restaurants')
+            .doc(restaurantId)
+            .collection('orders')
+            .doc(pedidoId)
+            .get();
+
+          if (orderDoc.exists) {
+            const orderData = orderDoc.data() as { items: { [key: string]: number } };
+            setSelectedItems(orderData.items);
+          }
+        }
       } catch (error) {
-        console.error('Error fetching menu items:', error);
-        Alert.alert('Error', 'No se pudieron obtener los elementos del menú.');
+        console.error('Error fetching menu items or order:', error);
+        Alert.alert('Error', 'No se pudieron obtener los elementos del menú o el pedido.');
       }
     };
 
-    fetchMenuItems();
-  }, []);
+    fetchMenuItemsAndOrder();
+  }, [pedidoId]);
 
   const handleSelectItem = (itemId: string, quantity: number) => {
     setSelectedItems(prevState => ({
@@ -142,12 +159,13 @@ const OrderScreen = () => {
           createdAt: firestore.Timestamp.now(),
         });
 
+        // Ensure the table is updated with the new order ID
         await firestore()
           .collection('restaurants')
           .doc(restaurantId)
           .collection('tables')
           .doc(tableId)
-          .update({ status: 'occupied', PedidoId: orderRef.id });
+          .update({ status: 'pending', PedidoId: orderRef.id });
 
         Alert.alert('Éxito', 'Pedido creado correctamente.');
       }
@@ -173,7 +191,7 @@ const OrderScreen = () => {
             />
             <View style={styles.menuItemDetails}>
               <View>
-                <Text>{item.name}</Text>
+                <Text style={{ fontWeight: 'bold'}}>{item.name}</Text>
                 <Text>Precio: {item.price} €</Text>
               </View>
               <View style={styles.quantityRow}>
@@ -207,10 +225,18 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   menuItem: {
-    flexDirection: 'row', // Align items horizontally
-    padding: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: 'gray',
+    flexDirection: 'row',
+    padding: 15,
+    marginVertical: 4,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3, 
+    marginLeft: 5,
+    marginRight: 5,
   },
   menuItemImage: {
     width: 50,

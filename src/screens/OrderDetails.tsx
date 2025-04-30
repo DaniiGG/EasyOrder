@@ -4,6 +4,7 @@ import firestore from '@react-native-firebase/firestore';
 import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/native'; // Import useFocusEffect
 import auth from '@react-native-firebase/auth';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import HomeScreen from './HomeScreen';
 
 type RootStackParamList = {
   Login: undefined;
@@ -19,6 +20,14 @@ const OrderDetails = () => {
   const route = useRoute();
   const { orderId } = route.params as { orderId: string };
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+
+
+  useEffect(() => {
+    navigation.setOptions({ title: "Detalles del Pedido" 
+    })
+
+  })
+  
 
   useFocusEffect(
     useCallback(() => {
@@ -152,11 +161,68 @@ const OrderDetails = () => {
     }
   };
 
+  const calculateTotalPrice = () => {
+    if (!order) return 0;
+    return Object.entries(order.items).reduce((total, [itemId, quantity]) => {
+      const menuItem = menuItems.find(item => item.id === itemId);
+      if (menuItem) {
+        total += menuItem.price * quantity;
+      }
+      return total;
+    }, 0);
+  };
+
+  const updateOrderAndTableStatus = async (orderStatus: string, tableStatus: string) => {
+    try {
+      const user = auth().currentUser;
+      if (!user) {
+        Alert.alert('Error', 'Usuario no autenticado.');
+        return;
+      }
+  
+      const userDoc = await firestore().collection('users').doc(user.uid).get();
+      const userData = userDoc.data();
+      const restaurantId = userData?.restaurantId;
+  
+      if (!restaurantId || !order) {
+        Alert.alert('Error', 'No se encontró el ID del restaurante o el pedido.');
+        return;
+      }
+  
+      // Update order status
+      await firestore()
+        .collection('restaurants')
+        .doc(restaurantId)
+        .collection('orders')
+        .doc(orderId)
+        .update({ status: orderStatus });
+  
+      // Update table status
+      await firestore()
+        .collection('restaurants')
+        .doc(restaurantId)
+        .collection('tables')
+        .doc(order.tableId)
+        .update({ status: tableStatus });
+  
+      Alert.alert('Éxito', `Estado actualizado a ${orderStatus}.`);
+// Remove onStatusChange call since it's not defined
+// If status change refresh is needed, implement navigation.goBack() or similar
+navigation.goBack(); // Return to previous screen after status update
+    } catch (error) {
+      console.error('Error updating status:', error);
+      Alert.alert('Error', 'No se pudo actualizar el estado.');
+    }
+  };
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Detalles del Pedido</Text>
+      <View style={styles.buttonContainer}>
+        <Button title="Servido" onPress={() => updateOrderAndTableStatus('served', 'served')} />
+        <Button title="Pagado" onPress={() => updateOrderAndTableStatus('completed', 'free')} />
+      </View>
       {order ? (
-        <View>
+        <View style={styles.content}>
           <Text>Estado: {order.status}</Text>
           {Object.entries(order.items).map(([itemId, quantity]) => {
             const menuItem = menuItems.find(item => item.id === itemId);
@@ -167,29 +233,37 @@ const OrderDetails = () => {
                   style={styles.menuItemImage}
                 />
                 <View style={styles.menuItemDetails}>
-                  <Text>{menuItem.name}</Text>
-                  <Text>Precio: {menuItem.price} €</Text>
-                  <Text>Cantidad Pedida: {quantity}</Text>
+                  <View style={styles.menuItemText}>
+                    <Text style={{ fontWeight: 'bold' }}>{menuItem.name}</Text>
+                    <Text>Precio (Ud.): {menuItem.price} €</Text>
+                    <Text >Cantidad: {quantity}</Text>
+                  </View>
+                  <Text style={styles.itemTotalPrice}>
+                    Total: {(menuItem.price * quantity).toFixed(2)} €
+                  </Text>
                 </View>
               </View>
             ) : null;
           })}
-          <Button 
-            title="Pedir Más" 
-            onPress={() => {
-              if (order) {
-                navigation.navigate('OrderScreen', { 
-                  tableId: order.tableId, 
-                  orderedItems: order.items,
-                  pedidoId: orderId // Pass the order ID to OrderScreen
-                });
-              }
-            }} 
-          />
+          <Text style={styles.totalPrice}>Precio Total: {calculateTotalPrice()} €</Text>
         </View>
       ) : (
         <Text>Cargando...</Text>
       )}
+      <View style={styles.buttonContainer}>
+        <Button 
+          title="Pedir Más" 
+          onPress={() => {
+            if (order) {
+              navigation.navigate('OrderScreen', { 
+                tableId: order.tableId, 
+                orderedItems: order.items,
+                pedidoId: orderId // Pass the order ID to OrderScreen
+              });
+            }
+          }} 
+        />
+      </View>
     </View>
   );
 };
@@ -198,28 +272,58 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    backgroundColor: '#fff',
+    backgroundColor: '#f8f9fa', 
+  },
+  content: {
+    flex: 1,
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 20,
     textAlign: 'center',
+    color: '#343a40', 
   },
   menuItem: {
-    flexDirection: 'row', // Align items horizontally
-    padding: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: 'gray',
+    flexDirection: 'row',
+    padding: 15,
+    marginVertical: 4,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3, 
   },
   menuItemImage: {
-    width: 50,
-    height: 50,
-    marginRight: 10,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    marginRight: 15,
   },
   menuItemDetails: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    flex: 1,
+  },
+  menuItemText: {
     justifyContent: 'center',
-    flex: 1, // Allow the details to take up remaining space
+  },
+  itemTotalPrice: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#495057',
+  },
+  totalPrice: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginTop: 20,
+    textAlign: 'center',
+    color: '#495057', // Darker text color
+  },
+  buttonContainer: {
   },
 });
 

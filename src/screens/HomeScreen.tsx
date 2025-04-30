@@ -3,6 +3,7 @@ import { View, Text, Button, Alert, StyleSheet, Image, TouchableOpacity, FlatLis
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useFocusEffect } from '@react-navigation/native'; // Import useFocusEffect
 
 type RootStackParamList = {
   Login: undefined;
@@ -21,7 +22,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const [menuVisible, setMenuVisible] = useState<boolean>(false);
   const [isConfigured, setIsConfigured] = useState<boolean>(false);
   const [isOwner, setIsOwner] = useState<boolean>(false);
-  const [tables, setTables] = useState<{ id: string; numero: string; status: string; PedidoId: string }[]>([]);
+  const [tables, setTables] = useState<{ id: string; numero: string; status: string; PedidoId: string; }[]>([]);
   const user = auth().currentUser;
 
   const toggleMenu = () => {
@@ -57,17 +58,14 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           const data = userDoc.data();
           setUserName(data?.name || 'Usuario');
   
-          // 🔹 Verificar si el usuario es dueño
           if (data?.role === 'admin') {
             setIsOwner(true);
   
-            // 🔹 Verificar si el restaurante está configurado
             if (data?.restaurantId) {
               const restaurantDoc = await firestore().collection('restaurants').doc(data.restaurantId).get();
               if (restaurantDoc.exists) {
                 const restaurantData = restaurantDoc.data();
   
-                // ✅ Verificación más segura de los campos obligatorios
                 const hasRequiredFields =
                   restaurantData?.name && restaurantData.name.trim() !== '' &&
                   restaurantData?.location && restaurantData.location.trim() !== '' &&
@@ -91,44 +89,46 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     fetchUserData();
   }, [user]);
 
-  useEffect(() => {
-    const fetchTables = async () => {
-      try {
-        const user = auth().currentUser;
-        if (!user) {
-          Alert.alert('Error', 'Usuario no autenticado.');
-          return;
+  useFocusEffect(
+    React.useCallback(() => {
+      const fetchTables = async () => {
+        try {
+          const user = auth().currentUser;
+          if (!user) {
+            Alert.alert('Error', 'Usuario no autenticado.');
+            return;
+          }
+
+          const userDoc = await firestore().collection('users').doc(user.uid).get();
+          const userData = userDoc.data();
+          const restaurantId = userData?.restaurantId;
+
+          if (!restaurantId) {
+            Alert.alert('Error', 'No se encontró el ID del restaurante.');
+            return;
+          }
+
+          const tablesSnapshot = await firestore()
+            .collection('restaurants')
+            .doc(restaurantId)
+            .collection('tables')
+            .get();
+
+          const tablesData = tablesSnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data(),
+          }));
+
+          setTables(tablesData as { id: string; numero: string; status: string; PedidoId: string }[]);
+        } catch (error) {
+          console.error('Error fetching tables:', error);
+          Alert.alert('Error', 'No se pudieron obtener las mesas.');
         }
+      };
 
-        const userDoc = await firestore().collection('users').doc(user.uid).get();
-        const userData = userDoc.data();
-        const restaurantId = userData?.restaurantId;
-
-        if (!restaurantId) {
-          Alert.alert('Error', 'No se encontró el ID del restaurante.');
-          return;
-        }
-
-        const tablesSnapshot = await firestore()
-          .collection('restaurants')
-          .doc(restaurantId)
-          .collection('tables')
-          .get();
-
-        const tablesData = tablesSnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-
-        setTables(tablesData as { id: string; numero: string; status: string; PedidoId: string }[]);
-      } catch (error) {
-        console.error('Error fetching tables:', error);
-        Alert.alert('Error', 'No se pudieron obtener las mesas.');
-      }
-    };
-
-    fetchTables();
-  }, []);
+      fetchTables();
+    }, [])
+  );
 
   useLayoutEffect(() => {
     if (userName) {
@@ -171,7 +171,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   };
 
   const handleTableClick = (table: { id: string; numero: string; status: string; PedidoId: string }) => {
-    if (table.status === 'occupied') {
+    if (table.status === 'pending' || table.status === 'served') {
       navigation.navigate('OrderDetails', { orderId: table.PedidoId });
     } else {
       navigation.navigate('OrderScreen', { tableId: table.id });
@@ -181,14 +181,19 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <View style={styles.container}>
-      <Text style={styles.title}>Mesas del Restaurante</Text>
       <FlatList
         data={tables}
         keyExtractor={item => item.id}
         renderItem={({ item }) => (
           <TouchableOpacity onPress={() => handleTableClick(item)}>
             <Image
-              source={item.status === 'occupied' ? require('../assets/iconoMesaRed.png') : require('../assets/iconoMesa.png')} // Use different images for occupied and free tables
+              source={
+                item.status === 'pending'
+                  ? require('../assets/iconoMesaRed.png')
+                  : item.status === 'served'
+                  ? require('../assets/iconoMesaGreen.png')
+                  : require('../assets/iconoMesa.png')
+              } // Use different images for occupied, served, and free tables
               style={styles.tableImage}
             />
             <Text style={styles.tableNumber}>Mesa {item.numero}</Text>
