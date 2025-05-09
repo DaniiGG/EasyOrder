@@ -8,7 +8,7 @@ import HomeScreen from './HomeScreen';
 
 type RootStackParamList = {
   Login: undefined;
-  Register: undefined; // Agregar la pantalla de registro al stack das
+  Register: undefined;
   Home: undefined;
   OrderScreen: { tableId: string; orderedItems: { [key: string]: number }; pedidoId: string };
 };
@@ -20,10 +20,29 @@ const OrderDetails = () => {
   const route = useRoute();
   const { orderId } = route.params as { orderId: string };
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const statusTranslations: { [key: string]: string } = {
+    pending: 'Pendiente',
+    served: 'Servido',
+    completed: 'Completado',
+  };
 
 
   useEffect(() => {
-    navigation.setOptions({ title: "Detalles del Pedido" 
+    navigation.setOptions({ title: "Detalles del Pedido" ,
+      headerRight: () => (
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <View
+              style={[
+                styles.statusCircle,
+                { backgroundColor: order?.status === 'pending' ? '#dc401e' : order?.status === 'served' ? '#60dc1e' : '#28a745' }
+              ]}
+            />
+            <Text style={{color:'#fff', fontWeight:'bold'}}>{order?.status ? statusTranslations[order.status] || order.status : ''}</Text>
+          </View>
+      )
+
+
+     
     })
 
   })
@@ -206,9 +225,7 @@ const OrderDetails = () => {
         .update({ status: tableStatus });
   
       Alert.alert('Éxito', `Estado actualizado a ${orderStatus}.`);
-// Remove onStatusChange call since it's not defined
-// If status change refresh is needed, implement navigation.goBack() or similar
-navigation.goBack(); // Return to previous screen after status update
+      navigation.goBack(); // Return to previous screen after status update
     } catch (error) {
       console.error('Error updating status:', error);
       Alert.alert('Error', 'No se pudo actualizar el estado.');
@@ -218,12 +235,30 @@ navigation.goBack(); // Return to previous screen after status update
   return (
     <View style={styles.container}>
       <View style={styles.buttonContainer}>
-        <Button title="Servido" onPress={() => updateOrderAndTableStatus('served', 'served')} />
-        <Button title="Pagado" onPress={() => updateOrderAndTableStatus('completed', 'free')} />
+        <TouchableOpacity
+          style={[
+            styles.button,
+            order?.status === 'served' ? styles.buttonDisabled : styles.buttonServido
+          ]}
+          onPress={() => updateOrderAndTableStatus('served', 'served')}
+          disabled={order?.status === 'served'}
+        >
+          <Text style={styles.buttonText}>Servido</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[
+            styles.button,
+            order?.status === 'completed' ? styles.buttonDisabled : styles.buttonPagado
+          ]}
+          onPress={() => updateOrderAndTableStatus('completed', 'free')}
+          disabled={order?.status === 'completed'}
+        >
+          <Text style={styles.buttonText}>Pagado</Text>
+        </TouchableOpacity>
       </View>
       {order ? (
         <View style={styles.content}>
-          <Text>Estado: {order.status}</Text>
+          
           {Object.entries(order.items).map(([itemId, quantity]) => {
             const menuItem = menuItems.find(item => item.id === itemId);
             return menuItem ? (
@@ -250,11 +285,42 @@ navigation.goBack(); // Return to previous screen after status update
       ) : (
         <Text>Cargando...</Text>
       )}
-      <View style={styles.buttonContainer}>
+      <View>
         <Button 
           title="Pedir Más" 
-          onPress={() => {
+          onPress={async () => {
             if (order) {
+              const user = auth().currentUser;
+              if (!user) {
+                Alert.alert('Error', 'Usuario no autenticado.');
+                return;
+              }
+  
+              const userDoc = await firestore().collection('users').doc(user.uid).get();
+              const userData = userDoc.data();
+              const restaurantId = userData?.restaurantId;
+  
+              if (!restaurantId) {
+                Alert.alert('Error', 'No se encontró el ID del restaurante.');
+                return;
+              }
+  
+              // Update order status to pending when ordering more items
+              await firestore()
+                .collection('restaurants')
+                .doc(restaurantId)
+                .collection('orders')
+                .doc(orderId)
+                .update({ status: 'pending' });
+  
+              // Update table status to pending
+              await firestore()
+                .collection('restaurants')
+                .doc(restaurantId)
+                .collection('tables')
+                .doc(order.tableId)
+                .update({ status: 'pending' });
+  
               navigation.navigate('OrderScreen', { 
                 tableId: order.tableId, 
                 orderedItems: order.items,
@@ -324,6 +390,39 @@ const styles = StyleSheet.create({
     color: '#495057', // Darker text color
   },
   buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-evenly',
+    marginVertical: 10,
+  },
+  statusContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  statusCircle: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    marginRight: 10,
+  },
+  button: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 5,
+    alignItems: 'center',
+  },
+  buttonServido: {
+    backgroundColor: '#007BFF',
+  },
+  buttonPagado: {
+    backgroundColor: '#28a745',
+  },
+  buttonDisabled: {
+    backgroundColor: '#6c757d',
+  },
+  buttonText: {
+    color: '#fff',
+    fontWeight: 'bold',
   },
 });
 

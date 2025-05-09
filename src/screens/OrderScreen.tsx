@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, Button, StyleSheet, Alert, TouchableOpacity, Image } from 'react-native';
+import { Picker } from '@react-native-picker/picker'; // Import Picker from dedicated package
 import firestore from '@react-native-firebase/firestore';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import auth from '@react-native-firebase/auth';
@@ -10,22 +11,24 @@ type MenuItem = {
   name: string;
   price: number;
   quantity: number;
+  dishType: string; 
 };
 
 const OrderScreen = () => {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [selectedItems, setSelectedItems] = useState<{ [key: string]: number }>({});
+  const [categories, setCategories] = useState<string[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
   const route = useRoute();
   const navigation = useNavigation();
   const { tableId, orderedItems, pedidoId } = route.params as { tableId: string, orderedItems: { [key: string]: number }, pedidoId?: string };
 
   useEffect(() => {
-    navigation.setOptions({ title: "Hacer Pedido" 
-    })
-  })
-  
+    navigation.setOptions({ title: "Hacer Pedido" });
+  }, []);
+
   useEffect(() => {
-    const fetchMenuItemsAndOrder = async () => {
+    const fetchMenuItemsAndCategories = async () => {
       try {
         const user = auth().currentUser;
         if (!user) {
@@ -51,32 +54,22 @@ const OrderScreen = () => {
         const menuData = menuSnapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data(),
-          quantity: 0, // Initialize quantity
+          quantity: 0,
         }));
 
         setMenuItems(menuData as MenuItem[]);
 
-        // Fetch existing order details if pedidoId is provided
-        if (pedidoId) {
-          const orderDoc = await firestore()
-            .collection('restaurants')
-            .doc(restaurantId)
-            .collection('orders')
-            .doc(pedidoId)
-            .get();
-
-          if (orderDoc.exists) {
-            const orderData = orderDoc.data() as { items: { [key: string]: number } };
-            setSelectedItems(orderData.items);
-          }
-        }
+        // Extract unique categories and add "All" option
+        const uniqueCategories = Array.from(new Set(menuData.map(item => (item as MenuItem).dishType)));
+        setCategories(['Todos', ...uniqueCategories]); 
+        setSelectedCategory('Todos');
       } catch (error) {
-        console.error('Error fetching menu items or order:', error);
-        Alert.alert('Error', 'No se pudieron obtener los elementos del menú o el pedido.');
+        console.error('Error fetching menu items or categories:', error);
+        Alert.alert('Error', 'No se pudieron obtener los elementos del menú o las categorías.');
       }
     };
 
-    fetchMenuItemsAndOrder();
+    fetchMenuItemsAndCategories();
   }, [pedidoId]);
 
   const handleSelectItem = (itemId: string, quantity: number) => {
@@ -180,13 +173,24 @@ const OrderScreen = () => {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Seleccionar Elementos del Menú</Text>
+      <View style={styles.pickerContainer}>
+        <Picker
+          selectedValue={selectedCategory}
+          style={styles.picker}
+          onValueChange={(itemValue) => setSelectedCategory(itemValue)}
+        >
+          {categories.map(category => (
+            <Picker.Item key={category} label={category} value={category} />
+          ))}
+        </Picker>
+      </View>
       <FlatList
-        data={menuItems}
+        data={menuItems.filter(item => selectedCategory === 'Todos' || item.dishType === selectedCategory)}
         keyExtractor={item => item.id}
         renderItem={({ item }) => (
           <View style={styles.menuItem}>
             <Image
-              source={{ uri: item.image }} // Assuming item.image contains the image URL
+              source={{ uri: item.image }}
               style={styles.menuItemImage}
             />
             <View style={styles.menuItemDetails}>
@@ -224,6 +228,23 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     textAlign: 'center',
   },
+  pickerContainer: {
+    borderWidth: 1,
+    borderColor: '#111',
+    borderRadius: 10, // Adjust border radius for rounded corners
+    marginBottom: 20,// Light background color for contrast
+    shadowColor: '#000', // Set shadow color
+    shadowOffset: { width: 0, height: 6 }, // Further increase shadow offset height
+    shadowOpacity: 0.5, // Further increase shadow opacity
+    shadowRadius: 8, // Further increase shadow radius
+    elevation: 8, // Further increase elevation for Android shadow
+    backgroundColor: 'rgb(59, 175, 252)',
+  },
+  picker: {
+    height: 'auto',
+    width: '100%',
+    color: '#fff', // Set text color to black
+  },
   menuItem: {
     flexDirection: 'row',
     padding: 15,
@@ -244,13 +265,13 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   menuItemDetails: {
-    flexDirection: 'row', // Align details and controls horizontally
-    justifyContent: 'space-between', // Space between details and controls
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    flex: 1, // Allow the details to take up remaining space
+    flex: 1,
   },
   quantityRow: {
-    flexDirection: 'row', // Align quantity text and controls horizontally
+    flexDirection: 'row',
     alignItems: 'center',
   },
   controlButton: {
