@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, Button, StyleSheet, Alert, Image, TouchableOpacity, Modal } from 'react-native';
 import firestore from '@react-native-firebase/firestore';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import  MenuInfo  from './MenuInfo';
 import auth from '@react-native-firebase/auth';
 
@@ -13,6 +14,7 @@ enum DishType {
   Beverage = 'Bebida',
   Tapa = 'Tapa',
 }
+const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
 const EditMenu = () => {
   const navigation = useNavigation();
@@ -110,6 +112,10 @@ const EditMenu = () => {
     setMenuItem({ ...menuItem, dishType: type });
     setModalVisible(false);
   };
+
+  useEffect(() => {
+    navigation.setOptions({ title: "Editar menu" });
+  }, []);
 
   return (
     <View style={styles.container}>

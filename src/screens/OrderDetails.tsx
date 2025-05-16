@@ -412,10 +412,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   buttonServido: {
-    backgroundColor: '#007BFF',
+    backgroundColor: '#28a745',
   },
   buttonPagado: {
-    backgroundColor: '#28a745',
+    backgroundColor: '#000',
   },
   buttonDisabled: {
     backgroundColor: '#6c757d',

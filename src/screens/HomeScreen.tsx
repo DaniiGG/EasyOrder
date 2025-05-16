@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useLayoutEffect } from 'react';
-import { View, Text, Button, Alert, StyleSheet, Image, TouchableOpacity, FlatList } from 'react-native';
+import { View, Text, Button, Alert, StyleSheet,Switch, ImageBackground, Image, TouchableOpacity, FlatList, Animated } from 'react-native';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -22,7 +22,8 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const [menuVisible, setMenuVisible] = useState<boolean>(false);
   const [isConfigured, setIsConfigured] = useState<boolean>(false);
   const [isOwner, setIsOwner] = useState<boolean>(false);
-  const [tables, setTables] = useState<{ id: string; numero: string; status: string; PedidoId: string; }[]>([]);
+  const [tables, setTables] = useState<{ id: string; numero: string; status: string; PedidoId: string; position: { x: number, y: number } }[]>([]);
+  const [useCoordinates, setUseCoordinates] = useState<boolean>(true); // State to toggle layout mode
   const user = auth().currentUser;
 
   const toggleMenu = () => {
@@ -119,7 +120,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
             ...doc.data(),
           }));
 
-          setTables(tablesData as { id: string; numero: string; status: string; PedidoId: string }[]);
+          setTables(tablesData as { id: string; numero: string; status: string; PedidoId: string; position: { x: number, y: number } }[]);
         } catch (error) {
           console.error('Error fetching tables:', error);
           Alert.alert('Error', 'No se pudieron obtener las mesas.');
@@ -178,30 +179,55 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     }
   };
 
+  const toggleLayoutMode = () => {
+    setUseCoordinates(prevState => !prevState);
+  };
+
   return (
+    <ImageBackground
+        source={require('../assets/fondoSuelo.png')}
+        style={styles.background}>
     <View style={styles.container}>
-      <View style={styles.container}>
+      <View style={styles.switchContainer}>
+        <Text>Organizacion personalizada</Text>
+        <Switch
+          value={useCoordinates}
+          onValueChange={toggleLayoutMode}
+          trackColor={{ false: 'rgba(255, 255, 255, 0.68)', true: 'rgba(255, 255, 255, 0.68)' }} // gray when off, green when on
+          thumbColor={useCoordinates ? 'rgb(66, 173, 245)' : 'rgb(255, 255, 255)'} // dark green when on, light when off
+          ios_backgroundColor="#d1d1d1"
+        />
+      </View>
       <FlatList
         data={tables}
         keyExtractor={item => item.id}
+        key={useCoordinates ? 'coordinate-layout' : 'column-layout'} // Change key based on layout mode
         renderItem={({ item }) => (
           <TouchableOpacity onPress={() => handleTableClick(item)}>
-            <Image
-              source={
-                item.status === 'pending'
-                  ? require('../assets/iconoMesaRed.png')
-                  : item.status === 'served'
-                  ? require('../assets/iconoMesaGreen.png')
-                  : require('../assets/iconoMesa.png')
-              } // Use different images for occupied, served, and free tables
-              style={styles.tableImage}
-            />
-            <Text style={styles.tableNumber}>Mesa {item.numero}</Text>
+            <Animated.View
+              style={[
+                styles.tableImage,
+                useCoordinates
+                  ? { transform: [{ translateX: item.position.x }, { translateY: item.position.y }] }
+                  : {}
+              ]}
+            >
+              <Image
+                source={
+                  item.status === 'pending'
+                    ? require('../assets/iconoMesaRed.png')
+                    : item.status === 'served'
+                    ? require('../assets/iconoMesaGreen.png')
+                    : require('../assets/iconoMesa.png')
+                }
+                style={styles.tableImage}
+              />
+              <Text style={styles.tableNumber}>Mesa {item.numero}</Text>
+            </Animated.View>
           </TouchableOpacity>
         )}
-        numColumns={3} // Adjust the number of columns as needed
+        numColumns={useCoordinates ? 1 : 3} // Use 1 column for coordinate layout, 3 for column layout
       />
-    </View>
 
       {/* 🔹 Mostrar botón solo si el usuario es dueño y el restaurante no está configurado */}
       {isOwner && !isConfigured && (
@@ -218,12 +244,8 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           </TouchableOpacity>
         </View>
       )}
-
-      {/* <View style={styles.imageContainer}>
-        <Image source={require('../assets/aa.png')} style={styles.image} />
-        <Text style={styles.number}>42</Text>
-      </View> */}
-    </View>
+      </View>
+      </ImageBackground>
   );
 };
 
@@ -232,7 +254,9 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
+  },
+  buttonContainer: {
+    marginVertical: 10, // Add some margin to ensure the button is visible
   },
   imageContainer: {
     position: 'relative',
@@ -274,13 +298,22 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   tableImage: {
-    width: 100,
-    height: 100,
+    width: 70,
+    height: 70,
     margin: 10,
   },
   tableNumber: {
     textAlign: 'center',
     fontSize: 16,
+  },
+  switchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 10, // Add some margin to ensure the switch is visible
+  },
+  background: {
+    flex: 1,
+    resizeMode: 'cover', // Ajusta la imagen para cubrir toda la pantalla
   },
 });
 

@@ -41,6 +41,8 @@ type MenuItem = {
 
 const MenuInfo = () => {
   const [menus, setMenus] = useState<MenuItem[]>([]);
+  const [filteredMenus, setFilteredMenus] = useState<MenuItem[]>([]);
+  const [filter, setFilter] = useState<string>('');
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const user = auth().currentUser;
 
@@ -72,8 +74,8 @@ const MenuInfo = () => {
           const menusData: MenuItem[] = menusSnapshot.docs.map(doc => {
             const data = doc.data();
             return {
-              id: doc.id, // Use the document ID as the menuId
-              name: data.name || 'Unknown', // Provide default values if necessary
+              id: doc.id,
+              name: data.name || 'Unknown',
               image: data.image || '',
               dishType: data.dishType || DishType.Starter,
               price: data.price || 0,
@@ -82,6 +84,7 @@ const MenuInfo = () => {
             } as MenuItem;
           });
           setMenus(menusData);
+          setFilteredMenus(menusData); 
         }
       } catch (error) {
         console.error('Error fetching menus:', error);
@@ -90,26 +93,51 @@ const MenuInfo = () => {
 
     fetchMenus();
 
-    const unsubscribe = navigation.addListener
-    ('focus', () => {
-      fetchMenus(); // Refresh menus when the screen is focused
+    const unsubscribe = navigation.addListener('focus', () => {
+      fetchMenus();
     });
     return unsubscribe;
-  },  [navigation, user]);
+  }, [navigation, user]);
 
   const navigateToEditMenu = (menuId: string) => {
-    navigation.navigate('EditMenu', { menuId }); // Pass only menuId
+    navigation.navigate('EditMenu', { menuId });
+  };
+
+  const handleFilterChange = (selectedFilter: string) => {
+    setFilter(selectedFilter);
+    if (selectedFilter === "") {
+      setFilteredMenus(menus);
+    } else {
+      const filtered = menus.filter(menu => menu.dishType === selectedFilter);
+      setFilteredMenus(filtered);
+    }
   };
 
   return (
-    <View style={styles.container}> 
+    <View style={styles.container}>
+      
+      <Text style={styles.title}>Menús del Restaurante</Text>
+       <View style={styles.pickerContainer}>
+      <Picker
+        selectedValue={filter}
+        onValueChange={handleFilterChange}
+        style={styles.picker}
+      >
+        <Picker.Item label="Todos" value="" />
+        <Picker.Item label="Entrante" value={DishType.Starter} />
+        <Picker.Item label="Primer Plato" value={DishType.MainCourse} />
+        <Picker.Item label="Segundo Plato" value={DishType.SecondoCourse} />
+        <Picker.Item label="Postre" value={DishType.Dessert} />
+        <Picker.Item label="Bebida" value={DishType.Beverage} />
+        <Picker.Item label="Tapa" value={DishType.Tapa} />
+      </Picker>
+      </View>
       <ScrollView>
-        <Text style={styles.title}>Menús del Restaurante</Text>
-        {menus.map((menu, index) => (
+        {filteredMenus.map((menu, index) => (
           <TouchableOpacity
             key={index}
-            style={styles.menuItemContainer}
-            onPress={() => navigateToEditMenu(menu.id)} // Pass only menuId
+            style={styles.menuItem}
+            onPress={() => navigateToEditMenu(menu.id)}
           >
             <Image
               source={{ uri: menu.image }}
@@ -168,10 +196,36 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
   },
-  addButtonText: {
-    color: '#fff',
-    fontSize: 24,
-    fontWeight: 'bold',
+  pickerContainer: {
+    borderWidth: 1,
+    borderColor: '#111',
+    borderRadius: 10,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 }, 
+    shadowOpacity: 0.5, 
+    shadowRadius: 8, 
+    elevation: 8, 
+    backgroundColor: 'rgb(59, 175, 252)',
+  },
+  picker: {
+    height: 'auto',
+    width: '100%',
+    color: '#fff', 
+  },
+  menuItem: {
+    flexDirection: 'row',
+    padding: 15,
+    marginVertical: 4,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3, 
+    marginLeft: 5,
+    marginRight: 5,
   },
 });
 

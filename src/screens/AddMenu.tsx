@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, Button, StyleSheet, ScrollView, Alert, TouchableOpacity, Modal } from 'react-native';
 import { launchImageLibrary } from 'react-native-image-picker';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import storage from '@react-native-firebase/storage';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
-import { Image } from 'react-native'; // Ensure Image is imported
+import { Image } from 'react-native';
 
 enum DishType {
   Starter = 'Entrante',
@@ -14,17 +16,22 @@ enum DishType {
   Beverage = 'Bebida',
   Tapa = 'Tapa'
 }
+const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
 const AddMenu = () => {
   const [newMenuItem, setNewMenuItem] = useState({
     name: '',
     image: '',
     dishType: DishType.Starter,
-    price: 0,
+    price: '',
     allergens: '',
   });
   const [modalVisible, setModalVisible] = useState(false);
-  const [imagePreview, setImagePreview] = useState<string | null>(null); // State for image preview
+  const [imagePreview, setImagePreview] = useState<string | null>(null); 
+/*
+  useEffect(() => { 
+    navigation.setOptions({ title: "Añadir menu" });
+  }, []);*/
 
   const handleImagePick = async () => {
     const result = await launchImageLibrary({ mediaType: 'photo' });
@@ -43,7 +50,6 @@ const AddMenu = () => {
       return;
     }
 
-    // Set image preview
     setImagePreview(uri);
 
     try {
@@ -65,7 +71,7 @@ const AddMenu = () => {
 
   const handleAddMenuItem = async () => {
     try {
-      console.log('Menu item to add:', newMenuItem); // Log the state to verify the image URL
+      console.log('Menu item to add:', newMenuItem); 
       const user = auth().currentUser;
       if (!user) {
         Alert.alert('Error', 'Usuario no autenticado.');
@@ -81,7 +87,6 @@ const AddMenu = () => {
         return;
       }
   
-      // Ensure the image URL is present in the state
       if (!newMenuItem.image) {
         Alert.alert('Error', 'La URL de la imagen no está presente.');
         return;
@@ -102,6 +107,8 @@ const AddMenu = () => {
       Alert.alert('Error', 'No se pudo añadir el elemento del menú.');
     }
   };
+
+  
 
   return (
     <View style={styles.container}> 
@@ -150,23 +157,20 @@ const AddMenu = () => {
       <TextInput
         style={styles.input}
         placeholder="Precio"
-        value={newMenuItem.price === 0 ? '' : newMenuItem.price.toString()}
-        onChangeText={(text) => {
-          const parsedPrice = parseFloat(text);
-          if (!isNaN(parsedPrice) || text === '') {
-            setNewMenuItem({ ...newMenuItem, price: text === '' ? 0 : parsedPrice });
-          }
-        }}
+        value={newMenuItem.price.toString()}
+        onChangeText={(text) => setNewMenuItem({ ...newMenuItem, price: text })}
+        
         keyboardType="numeric"
         placeholderTextColor="gray"
       />
-      <TextInput
+      <TextInput  
         style={styles.input}
         placeholder="Alérgenos"
         value={newMenuItem.allergens}
         onChangeText={(text) => setNewMenuItem({ ...newMenuItem, allergens: text })}
         placeholderTextColor="gray"
       />
+      
       <TouchableOpacity style={styles.button} onPress={() => setModalVisible(true)}>
         <Text style={styles.buttonText}>{newMenuItem.dishType || 'Seleccionar Tipo de Plato'}</Text>
       </TouchableOpacity>
@@ -174,13 +178,13 @@ const AddMenu = () => {
       {imagePreview && (
         <Image
           source={{ uri: imagePreview }}
-          style={{ width: 100, height: 100, marginBottom: 15 }} // Style for image preview
+          style={{ width: 100, height: 100, marginBottom: 15 }} 
         />
       )}
     </ScrollView>
     <TouchableOpacity style={styles.addButton} onPress={handleAddMenuItem}>
       <Image
-        source={require('../assets/iconoAdd.png')} // Ensure this path is correct and the icon exists
+        source={require('../assets/iconoAdd.png')} 
         style={styles.addIcon}
       />
     </TouchableOpacity>
@@ -254,7 +258,7 @@ const styles = StyleSheet.create({
   addIcon: {
     width: 30,
     height: 30,
-    tintColor: '#fff', // Optional: to color the icon
+    tintColor: '#fff', 
   },
 });
 
