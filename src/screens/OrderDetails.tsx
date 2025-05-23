@@ -5,6 +5,7 @@ import { useRoute, useNavigation, useFocusEffect } from '@react-navigation/nativ
 import auth from '@react-native-firebase/auth';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import HomeScreen from './HomeScreen';
+import Toast from 'react-native-toast-message';  
 
 type RootStackParamList = {
   Login: undefined;
@@ -170,13 +171,21 @@ const OrderDetails = () => {
           });
   
         setOrder({ ...order, items: updatedItems });
-        Alert.alert('Éxito', 'Cantidad actualizada correctamente.');
+        Toast.show({
+          type: 'success',
+          text1: 'Éxito',
+          text2: 'Cantidad actualizada correctamente.',
+        });
       } else {
         Alert.alert('Error', 'No se encontró el pedido.');
       }
     } catch (error) {
       console.error('Error updating order:', error);
-      Alert.alert('Error', 'No se pudo actualizar la cantidad.');
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'No se pudo actualizar la cantidad.',
+      });
     }
   };
 
@@ -225,6 +234,11 @@ const OrderDetails = () => {
         .update({ status: tableStatus });
   
       Alert.alert('Éxito', `Estado actualizado a ${orderStatus}.`);
+      Toast.show({
+        type: 'success',
+        text1: 'Éxito',
+        text2: `Estado actualizado a ${orderStatus}.`,
+      });
       navigation.goBack(); // Return to previous screen after status update
     } catch (error) {
       console.error('Error updating status:', error);
@@ -330,6 +344,7 @@ const OrderDetails = () => {
           }} 
         />
       </View>
+      <Toast/>
     </View>
   );
 };

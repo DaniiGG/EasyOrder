@@ -79,6 +79,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
   },
   sectionText: {
+    color: 'black',
     fontSize: 18,
     fontWeight: '500',
   },

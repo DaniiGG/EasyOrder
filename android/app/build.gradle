@@ -119,4 +119,17 @@ dependencies {
     } else {
         implementation jscFlavor
     }
+    // Add this block:
+    configurations.all {
+        resolutionStrategy {
+            eachDependency { DependencyResolveDetails details ->
+                if (details.requested.group == 'com.google.android.gms' && details.requested.name == 'play-services-vision') {
+                    details.useVersion '20.1.3' // or the version you need
+                }
+            }
+        }
+        attributes {
+            attribute(Attribute.of("react-native-camera", String), "general")
+        }
+    }
 }

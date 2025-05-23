@@ -5,6 +5,7 @@ import { useNavigation } from '@react-navigation/native';
 import firestore from '@react-native-firebase/firestore';
 import auth from '@react-native-firebase/auth';
 import styles from '../styles/LoginStyles';
+import Toast from 'react-native-toast-message';
 
 type RootStackParamList = {
   Login: undefined;
@@ -33,7 +34,11 @@ const Login = () => {
       }
     } catch (error) {
       console.error('Error al iniciar sesión:', error);
-      Alert.alert('Error', 'Correo o contraseña incorrectos.');
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Correo o contraseña incorrectos.',
+      });;
     }
   };
 
@@ -79,6 +84,7 @@ const Login = () => {
         <Text style={styles.text}>¿No tienes cuenta? <Text style={styles.link}>Regístrate aquí</Text></Text>
       </TouchableOpacity>
     </View>
+    <Toast/>
     </ImageBackground>
   );
 };

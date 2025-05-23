@@ -5,6 +5,9 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import styles from '../styles/LoginStyles';
+import QRCodeScanner from 'react-native-qrcode-scanner';
+import { RNCamera } from 'react-native-camera';
+import { Modal, TouchableOpacity } from 'react-native';
 
 type RootStackParamList = {
   Login: undefined;
@@ -18,6 +21,7 @@ const Register = () => {
   const [role, setRole] = useState<'owner' | 'employee'>('owner');
   const [restaurantName, setRestaurantName] = useState('');
   const [restaurantCode, setRestaurantCode] = useState('');
+  const [qrModalVisible, setQrModalVisible] = useState(false);
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
   useEffect(() => {
@@ -77,6 +81,12 @@ const Register = () => {
     }
   };
 
+  const handleQRRead = (e: { data: string }) => {
+    setRestaurantCode(e.data);
+    setQrModalVisible(false);
+    Alert.alert('Código escaneado', `Código: ${e.data}`);
+  };
+
   return (
     <ImageBackground
       source={require('../assets/fondoRes.jpg')}
@@ -134,13 +144,58 @@ const Register = () => {
         )}
 
         {role === 'employee' && (
-          <TextInput
-            style={styles.input}
-            placeholder="Código del Restaurante"
-            value={restaurantCode}
-            onChangeText={setRestaurantCode}
-            placeholderTextColor="white"
-          />
+          <View style={{ width: '100%' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <TextInput
+                style={[styles.input, { flex: 1 }]}
+                placeholder="Código del Restaurante"
+                value={restaurantCode}
+                onChangeText={setRestaurantCode}
+                placeholderTextColor="white"
+              />
+              <TouchableOpacity
+                style={{
+                  marginLeft: 8,
+                  backgroundColor: '#45B4E0',
+                  padding: 10,
+                  borderRadius: 8,
+                }}
+                onPress={() => setQrModalVisible(true)}
+              >
+                <Text style={{ color: 'white', fontWeight: 'bold' }}>QR</Text>
+              </TouchableOpacity>
+            </View>
+            <Modal
+              visible={qrModalVisible}
+              animationType="slide"
+              transparent={false}
+              onRequestClose={() => setQrModalVisible(false)}
+            >
+              <QRCodeScanner
+                onRead={handleQRRead}
+                flashMode={RNCamera.Constants.FlashMode.auto}
+                topContent={
+                  <Text style={{ fontSize: 18, margin: 20, textAlign: 'center' }}>
+                    Escanea el código QR del restaurante
+                  </Text>
+                }
+                bottomContent={
+                  <TouchableOpacity
+                    style={{
+                      backgroundColor: '#45B4E0',
+                      padding: 12,
+                      borderRadius: 8,
+                      alignSelf: 'center',
+                      marginTop: 20,
+                    }}
+                    onPress={() => setQrModalVisible(false)}
+                  >
+                    <Text style={{ color: 'white', fontWeight: 'bold' }}>Cancelar</Text>
+                  </TouchableOpacity>
+                }
+              />
+            </Modal>
+          </View>
         )}
 
         <Button title="Registrarse" onPress={handleRegister} />

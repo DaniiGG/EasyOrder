@@ -12,6 +12,7 @@ import AddMenu from '../screens/AddMenu';
 import EditMenu from '../screens/EditMenu';
 import OrderScreen from '../screens/OrderScreen';
 import OrderDetails from '../screens/OrderDetails';
+import Toast from 'react-native-toast-message';
 
 
 type RootStackParamList = {
@@ -53,6 +54,7 @@ const StackNavigator = () => {
           <Stack.Screen name="OrderDetails" component={OrderDetails} />
           <Stack.Screen name="Home" component={HomeScreen} options={{ title: "Cargando..." }} />
       </Stack.Navigator>
+      <Toast/>
     </NavigationContainer>
   );
 };

@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useLayoutEffect } from 'react';
-import { View, Text, Button, Alert, StyleSheet,Switch, ImageBackground, Image, TouchableOpacity, FlatList, Animated } from 'react-native';
+import { View, Text, Button, StyleSheet, Switch, ImageBackground, Image, TouchableOpacity, FlatList, Animated } from 'react-native';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useFocusEffect } from '@react-navigation/native'; // Import useFocusEffect
+import { useFocusEffect } from '@react-navigation/native';
+import Toast from 'react-native-toast-message'; // <-- Add this import
 
 type RootStackParamList = {
   Login: undefined;
@@ -83,7 +84,11 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           }
         }
       } catch (error) {
-        console.error('Error obteniendo datos del usuario:', error);
+        Toast.show({
+          type: 'error',
+          text1: 'Error',
+          text2: 'Error obteniendo datos del usuario.',
+        });
       }
     };
   
@@ -96,7 +101,11 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         try {
           const user = auth().currentUser;
           if (!user) {
-            Alert.alert('Error', 'Usuario no autenticado.');
+            Toast.show({
+              type: 'error',
+              text1: 'Error',
+              text2: 'Usuario no autenticado.',
+            });
             return;
           }
 
@@ -105,7 +114,11 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           const restaurantId = userData?.restaurantId;
 
           if (!restaurantId) {
-            Alert.alert('Error', 'No se encontró el ID del restaurante.');
+            Toast.show({
+              type: 'error',
+              text1: 'Error',
+              text2: 'No se encontró el ID del restaurante.',
+            });
             return;
           }
 
@@ -122,8 +135,11 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 
           setTables(tablesData as { id: string; numero: string; status: string; PedidoId: string; position: { x: number, y: number } }[]);
         } catch (error) {
-          console.error('Error fetching tables:', error);
-          Alert.alert('Error', 'No se pudieron obtener las mesas.');
+          Toast.show({
+            type: 'error',
+            text1: 'Error',
+            text2: 'No se pudieron obtener las mesas.',
+          });
         }
       };
 
@@ -164,7 +180,11 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
       index: 0,
       routes: [{ name: 'Login' }],
     });
-    Alert.alert('Sesión cerrada', 'Has cerrado sesión exitosamente.');
+    Toast.show({
+      type: 'success',
+      text1: 'Sesión cerrada',
+      text2: 'Has cerrado sesión exitosamente.',
+    });
   };
 
   const handleSettings = () => {
@@ -188,8 +208,9 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         source={require('../assets/fondoSuelo.png')}
         style={styles.background}>
     <View style={styles.container}>
+    <Toast />
       <View style={styles.switchContainer}>
-        <Text>Organizacion personalizada</Text>
+        <Text style={styles.tableNumber}>Organizacion personalizada</Text>
         <Switch
           value={useCoordinates}
           onValueChange={toggleLayoutMode}
@@ -245,9 +266,10 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         </View>
       )}
       </View>
-      </ImageBackground>
+      <Toast />
+    </ImageBackground>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -277,6 +299,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     padding: 10,
     borderRadius: 10,
+    color: 'black',
   },
   menu: {
     position: 'absolute',
@@ -290,12 +313,14 @@ const styles = StyleSheet.create({
   optionText: {
     fontSize: 18,
     paddingVertical: 10,
+    color: 'black',
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 20,
     textAlign: 'center',
+    color: 'black',
   },
   tableImage: {
     width: 70,
@@ -305,6 +330,7 @@ const styles = StyleSheet.create({
   tableNumber: {
     textAlign: 'center',
     fontSize: 16,
+    color: 'black',
   },
   switchContainer: {
     flexDirection: 'row',

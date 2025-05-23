@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, Alert, TouchableOpacity } from 'react-native';
+import { View, Text, TextInput, Button, StyleSheet, Alert, ScrollView, TouchableOpacity } from 'react-native';
 import firestore from '@react-native-firebase/firestore';
 import auth from '@react-native-firebase/auth';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import QRCode from 'react-native-qrcode-svg'; // <-- Add this import
 
 type RootStackParamList = {
   Login: undefined;
@@ -26,6 +27,7 @@ const ResInfo = () => {
   const [isOwner, setIsOwner] = useState<boolean>(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [touched, setTouched] = useState<{ [key: string]: boolean }>({});
+  const [restaurantId, setRestaurantId] = useState<string | null>(null); // <-- Add this state
 
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const user = auth().currentUser;
@@ -49,6 +51,7 @@ const ResInfo = () => {
         }
         
         const restaurantId = userData?.restaurantId;
+        setRestaurantId(restaurantId || null); // <-- Save restaurantId to state
 
         if (restaurantId) {
           const restaurantDoc = await firestore().collection('restaurants').doc(restaurantId).get();
@@ -172,7 +175,7 @@ const ResInfo = () => {
   };
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container}>
       <Text style={styles.title}>Configuración del Restaurante</Text>
       
       <View style={styles.inputGroup}>
@@ -273,8 +276,17 @@ const ResInfo = () => {
         ) : null}
       </View>
 
+      {/* QR Code Section */}
+      {restaurantId && (
+        <View style={styles.qrContainer}>
+          <Text style={styles.qrLabel}>Código QR del Restaurante</Text>
+          <QRCode value={restaurantId} size={180} />
+          <Text style={styles.qrIdText}>ID: {restaurantId}</Text>
+        </View>
+      )}
+
       <Button title="Guardar Restaurante" onPress={handleSaveRestaurant} />
-    </View>
+    </ScrollView>
   );
 };
 
@@ -282,7 +294,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    justifyContent: 'center',
     backgroundColor: '#f8f9fa', // Light background color
   },
   title: {
@@ -307,12 +318,33 @@ const styles = StyleSheet.create({
     padding: 10,
     fontSize: 16,
     backgroundColor: '#fff', // White background for inputs
+    color: 'black',
   },
   errorText: {
     color: 'red',
     fontSize: 13,
     marginTop: 2,
     marginLeft: 2,
+  },
+  qrContainer: {
+    alignItems: 'center',
+    marginVertical: 30,
+    backgroundColor: '#fff',
+    padding: 20,
+    borderRadius: 16,
+    elevation: 2,
+  },
+  qrLabel: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    color: '#343a40',
+  },
+  qrIdText: {
+    marginTop: 10,
+    fontSize: 12,
+    color: '#888',
+    textAlign: 'center',
   },
 });
 

@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, Alert, Image, TouchableOpacity, Modal } from 'react-native';
+import { View, Text, TextInput, Button, StyleSheet, Alert, Image,ScrollView, TouchableOpacity, Modal } from 'react-native';
 import firestore from '@react-native-firebase/firestore';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import  MenuInfo  from './MenuInfo';
 import auth from '@react-native-firebase/auth';
+import Toast from 'react-native-toast-message'; 
 
 enum DishType {
   Starter = 'Entrante',
@@ -14,7 +15,7 @@ enum DishType {
   Beverage = 'Bebida',
   Tapa = 'Tapa',
 }
-const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+
 
 const EditMenu = () => {
   const navigation = useNavigation();
@@ -29,6 +30,7 @@ const EditMenu = () => {
     createdAt: firestore.Timestamp.now(),
   });
   const [modalVisible, setModalVisible] = useState(false);
+  
 
   useEffect(() => {
     const fetchMenuItem = async () => {
@@ -53,7 +55,11 @@ const EditMenu = () => {
         }
       } catch (error) {
         console.error('Error fetching menu item:', error);
-        Alert.alert('Error', 'Failed to fetch menu item.');
+        Toast.show({
+          type: 'error',
+          text1: 'Error',
+          text2: 'No se pudo obtener elementos del menú.',
+        });
       }
     };
 
@@ -83,7 +89,11 @@ const EditMenu = () => {
       navigation.goBack();
     } catch (error) {
       console.error('Error updating menu item:', error);
-      Alert.alert('Error', 'No se pudo actualizar el elemento del menú.');
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'No se pudo actualizar el elemento del menú.',
+      });
     }
   };
 
@@ -104,7 +114,11 @@ const EditMenu = () => {
       navigation.goBack();
     } catch (error) {
       console.error('Error deleting menu item:', error);
-      Alert.alert('Error', 'No se pudo eliminar el elemento del menú.');
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'No se pudo eliminar el elemento del menú.',
+      });
     }
   };
 
@@ -120,72 +134,100 @@ const EditMenu = () => {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Editar Elemento del Menú</Text>
-      <Image
-        source={{ uri: menuItem.image }}
-        style={{ width: 200, height: 200, marginBottom: 15 }}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Nombre del Plato"
-        value={menuItem.name}
-        onChangeText={(text) => setMenuItem({ ...menuItem, name: text })}
-        placeholderTextColor="gray"
-      />
-      <TouchableOpacity style={styles.button} onPress={() => setModalVisible(true)}>
-        <Text style={styles.buttonText}>{menuItem.dishType || 'Seleccionar Tipo de Plato'}</Text>
-      </TouchableOpacity>
-      <Modal
-        transparent={true}
-        animationType="slide"
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <TouchableOpacity onPress={() => handleSelectDishType(DishType.Starter)}>
-              <Text style={styles.modalItem}>Entrante</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => handleSelectDishType(DishType.MainCourse)}>
-              <Text style={styles.modalItem}>Primer Plato</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => handleSelectDishType(DishType.SecondoCourse)}>
-              <Text style={styles.modalItem}>Segundo Plato</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => handleSelectDishType(DishType.Dessert)}>
-              <Text style={styles.modalItem}>Postre</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => handleSelectDishType(DishType.Beverage)}>
-              <Text style={styles.modalItem}>Bebida</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => handleSelectDishType(DishType.Tapa)}>
-              <Text style={styles.modalItem}>Tapa</Text>
-            </TouchableOpacity>
-            <Button title="Cerrar" onPress={() => setModalVisible(false)} />
-          </View>
+      <ScrollView contentContainerStyle={styles.scrollViewContent}>
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Imagen</Text>
+          <Image
+            source={{ uri: menuItem.image }}
+            style={{ width: 100, height: 100, marginBottom: 10 }}
+          />
         </View>
-      </Modal>
-      <TextInput
-        style={styles.input}
-        placeholder="Precio"
-        value={menuItem.price === 0 ? '' : menuItem.price.toString()}
-        onChangeText={(text) => {
-          const parsedPrice = parseFloat(text);
-          if (!isNaN(parsedPrice) || text === '') {
-            setMenuItem({ ...menuItem, price: text === '' ? 0 : parsedPrice });
-          }
-        }}
-        keyboardType="numeric"
-        placeholderTextColor="gray"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Alérgenos"
-        value={menuItem.allergens}
-        onChangeText={(text) => setMenuItem({ ...menuItem, allergens: text })}
-        placeholderTextColor="gray"
-      />
-      <Button title="Guardar" onPress={handleSave} />
-      <Button title="Borrar" onPress={handleDelete} />
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Nombre del Plato</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Nombre del Plato"
+            value={menuItem.name}
+            onChangeText={(text) => setMenuItem({ ...menuItem, name: text })}
+            placeholderTextColor="gray"
+          />
+        </View>
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Precio</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Precio"
+            value={menuItem.price === 0 ? '' : menuItem.price.toString()}
+            onChangeText={(text) => {
+              const parsedPrice = parseFloat(text);
+              if (!isNaN(parsedPrice) || text === '') {
+                setMenuItem({ ...menuItem, price: text === '' ? 0 : parsedPrice });
+              }
+            }}
+            keyboardType="numeric"
+            placeholderTextColor="gray"
+          />
+        </View>
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Alérgenos</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Alérgenos"
+            value={menuItem.allergens}
+            onChangeText={(text) => setMenuItem({ ...menuItem, allergens: text })}
+            placeholderTextColor="gray"
+          />
+        </View>
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Tipo de Plato</Text>
+          <TouchableOpacity style={styles.button} onPress={() => setModalVisible(true)}>
+            <Text style={styles.buttonText}>{menuItem.dishType || 'Seleccionar Tipo de Plato'}</Text>
+          </TouchableOpacity>
+        </View>
+
+        <Modal
+          transparent={true}
+          animationType="slide"
+          visible={modalVisible}
+          onRequestClose={() => setModalVisible(false)}
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <TouchableOpacity onPress={() => handleSelectDishType(DishType.Starter)}>
+                <Text style={styles.modalItem}>Entrante</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => handleSelectDishType(DishType.MainCourse)}>
+                <Text style={styles.modalItem}>Primer Plato</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => handleSelectDishType(DishType.SecondoCourse)}>
+                <Text style={styles.modalItem}>Segundo Plato</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => handleSelectDishType(DishType.Dessert)}>
+                <Text style={styles.modalItem}>Postre</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => handleSelectDishType(DishType.Beverage)}>
+                <Text style={styles.modalItem}>Bebida</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => handleSelectDishType(DishType.Tapa)}>
+                <Text style={styles.modalItem}>Tapa</Text>
+              </TouchableOpacity>
+              <Button title="Cerrar" onPress={() => setModalVisible(false)} />
+            </View>
+          </View>
+        </Modal>
+
+        <View style={styles.inputGroup}>
+          <Button title="Guardar" onPress={handleSave} />
+        </View>
+        <View style={styles.inputGroup}>
+          <Button title="Borrar" color="#dc3545" onPress={handleDelete} />
+        </View>
+      </ScrollView>
+      <Toast/>
     </View>
   );
 };
@@ -194,28 +236,42 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    backgroundColor: '#fff',
+    justifyContent: 'center',
+    backgroundColor: '#f8f9fa',
+  },
+  scrollViewContent: {
+    paddingBottom: 40,
   },
   title: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: 'bold',
-    marginBottom: 20,
+    marginBottom: 30,
     textAlign: 'center',
+    color: '#343a40',
+  },
+  inputGroup: {
+    marginBottom: 20,
+  },
+  label: {
+    fontSize: 16,
+    color: '#495057',
+    marginBottom: 5,
   },
   input: {
     borderWidth: 1,
-    borderColor: 'gray',
+    borderColor: '#ced4da',
     borderRadius: 8,
     padding: 10,
     fontSize: 16,
-    marginBottom: 15,
+    backgroundColor: '#fff',
+    color: 'black',
   },
   button: {
     backgroundColor: '#007BFF',
     padding: 10,
     borderRadius: 8,
     alignItems: 'center',
-    marginBottom: 15,
+    marginBottom: 0,
   },
   buttonText: {
     color: '#fff',
@@ -229,7 +285,7 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     width: 300,
-    backgroundColor: 'white',
+    backgroundColor: '#fff',
     borderRadius: 10,
     padding: 20,
     alignItems: 'center',

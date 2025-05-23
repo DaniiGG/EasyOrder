@@ -240,12 +240,14 @@ const styles = StyleSheet.create({
   tableLabel: {
     textAlign: 'center',
     marginTop: -10,
+    color: 'black',
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 20,
     textAlign: 'center',
+    color: 'black',
   },
   addButton: {
     backgroundColor: '#007BFF',

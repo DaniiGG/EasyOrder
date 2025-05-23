@@ -7,6 +7,7 @@ import storage from '@react-native-firebase/storage';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import { Image } from 'react-native';
+import Toast from 'react-native-toast-message'; 
 
 enum DishType {
   Starter = 'Entrante',
@@ -16,7 +17,7 @@ enum DishType {
   Beverage = 'Bebida',
   Tapa = 'Tapa'
 }
-const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+
 
 const AddMenu = () => {
   const [newMenuItem, setNewMenuItem] = useState({
@@ -28,16 +29,21 @@ const AddMenu = () => {
   });
   const [modalVisible, setModalVisible] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null); 
-/*
+  const navigation = useNavigation();
+
   useEffect(() => { 
     navigation.setOptions({ title: "Añadir menu" });
-  }, []);*/
+  }, []);
 
   const handleImagePick = async () => {
     const result = await launchImageLibrary({ mediaType: 'photo' });
 
     if (result.didCancel || !result.assets || result.assets.length === 0) {
-      Alert.alert('Error', 'No se seleccionó ninguna imagen.');
+      Toast.show({
+          type: 'error',
+          text1: 'Error',
+          text2: 'No se seleccionó ninguna imagen.',
+        });
       return;
     }
 
@@ -46,7 +52,11 @@ const AddMenu = () => {
 
     if (!uri || !fileName) {
       console.error('Error: URI or fileName is missing.');
-      Alert.alert('Error', 'No se pudo obtener la imagen seleccionada.');
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'No se pudo obtener la imagen seleccionada.',
+      });
       return;
     }
 
@@ -60,7 +70,11 @@ const AddMenu = () => {
       console.log('Image URL set:', url);
     } catch (error) {
       console.error('Error uploading image:', error);
-      Alert.alert('Error', 'No se pudo subir la imagen.');
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'No se pudo abrir la imagen.',
+      });
     }
   };
 
@@ -74,7 +88,11 @@ const AddMenu = () => {
       console.log('Menu item to add:', newMenuItem); 
       const user = auth().currentUser;
       if (!user) {
-        Alert.alert('Error', 'Usuario no autenticado.');
+        Toast.show({
+          type: 'error',
+          text1: 'Error',
+          text2: 'Usuario no autenticado.',
+        });
         return;
       }
   
@@ -83,12 +101,20 @@ const AddMenu = () => {
       const restaurantId = userData?.restaurantId;
 
       if (!restaurantId) {
-        Alert.alert('Error', 'No se encontró el ID del restaurante.');
+        Toast.show({
+          type: 'error',
+          text1: 'Error',
+          text2: 'No se encontro el id del restaurante.',
+        });
         return;
       }
   
       if (!newMenuItem.image) {
-        Alert.alert('Error', 'La URL de la imagen no está presente.');
+        Toast.show({
+          type: 'error',
+          text1: 'Error',
+          text2: 'La url de la imagen no está presente.',
+        });
         return;
       }
   
@@ -101,10 +127,18 @@ const AddMenu = () => {
           createdAt: firestore.Timestamp.now(),
         });
   
-      Alert.alert('Éxito', 'Elemento del menú añadido correctamente.');
+        Toast.show({
+          type: 'success',
+          text1: 'Éxito',
+          text2: 'Elemento del menú añadido correctamente.',
+        });
     } catch (error) {
       console.error('Error adding menu item:', error);
-      Alert.alert('Error', 'No se pudo añadir el elemento del menú.');
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'No se pudo añadir el elemento del menú.',
+      });
     }
   };
 
@@ -112,114 +146,144 @@ const AddMenu = () => {
 
   return (
     <View style={styles.container}> 
+    
       <ScrollView contentContainerStyle={styles.scrollViewContent}>
         <Text style={styles.title}>Añadir Nuevo Elemento del Menú</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Nombre del Plato"
-          value={newMenuItem.name}
-          onChangeText={(text) => setNewMenuItem({ ...newMenuItem, name: text })}
-          placeholderTextColor="gray"
-        />
-     
-      
-      
-      <Modal
-        transparent={true}
-        animationType="slide"
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <TouchableOpacity onPress={() => handleSelectDishType(DishType.Starter)}>
-              <Text style={styles.modalItem}>Entrante</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => handleSelectDishType(DishType.MainCourse)}>
-              <Text style={styles.modalItem}>Primer Plato</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => handleSelectDishType(DishType.SecondoCourse)}>
-              <Text style={styles.modalItem}>Segundo Plato</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => handleSelectDishType(DishType.Dessert)}>
-              <Text style={styles.modalItem}>Postre</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => handleSelectDishType(DishType.Beverage)}>
-              <Text style={styles.modalItem}>Bebida</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => handleSelectDishType(DishType.Tapa)}>
-              <Text style={styles.modalItem}>Tapa</Text>
-            </TouchableOpacity>
-            <Button title="Cerrar" onPress={() => setModalVisible(false)} />
-          </View>
-        </View>
-      </Modal>
-      <TextInput
-        style={styles.input}
-        placeholder="Precio"
-        value={newMenuItem.price.toString()}
-        onChangeText={(text) => setNewMenuItem({ ...newMenuItem, price: text })}
         
-        keyboardType="numeric"
-        placeholderTextColor="gray"
-      />
-      <TextInput  
-        style={styles.input}
-        placeholder="Alérgenos"
-        value={newMenuItem.allergens}
-        onChangeText={(text) => setNewMenuItem({ ...newMenuItem, allergens: text })}
-        placeholderTextColor="gray"
-      />
-      
-      <TouchableOpacity style={styles.button} onPress={() => setModalVisible(true)}>
-        <Text style={styles.buttonText}>{newMenuItem.dishType || 'Seleccionar Tipo de Plato'}</Text>
-      </TouchableOpacity>
-      <Button title="Seleccionar Imagen" onPress={handleImagePick} />
-      {imagePreview && (
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Nombre del Plato</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Nombre del Plato"
+            value={newMenuItem.name}
+            onChangeText={(text) => setNewMenuItem({ ...newMenuItem, name: text })}
+            placeholderTextColor="gray"
+          />
+        </View>
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Precio</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Precio"
+            value={newMenuItem.price.toString()}
+            onChangeText={(text) => setNewMenuItem({ ...newMenuItem, price: text })}
+            keyboardType="numeric"
+            placeholderTextColor="gray"
+          />
+        </View>
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Alérgenos</Text>
+          <TextInput  
+            style={styles.input}
+            placeholder="Alérgenos"
+            value={newMenuItem.allergens}
+            onChangeText={(text) => setNewMenuItem({ ...newMenuItem, allergens: text })}
+            placeholderTextColor="gray"
+          />
+        </View>
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Tipo de Plato</Text>
+          <TouchableOpacity style={styles.button} onPress={() => setModalVisible(true)}>
+            <Text style={styles.buttonText}>{newMenuItem.dishType || 'Seleccionar Tipo de Plato'}</Text>
+          </TouchableOpacity>
+        </View>
+
+        <Modal
+          transparent={true}
+          animationType="slide"
+          visible={modalVisible}
+          onRequestClose={() => setModalVisible(false)}
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <TouchableOpacity onPress={() => handleSelectDishType(DishType.Starter)}>
+                <Text style={styles.modalItem}>Entrante</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => handleSelectDishType(DishType.MainCourse)}>
+                <Text style={styles.modalItem}>Primer Plato</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => handleSelectDishType(DishType.SecondoCourse)}>
+                <Text style={styles.modalItem}>Segundo Plato</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => handleSelectDishType(DishType.Dessert)}>
+                <Text style={styles.modalItem}>Postre</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => handleSelectDishType(DishType.Beverage)}>
+                <Text style={styles.modalItem}>Bebida</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => handleSelectDishType(DishType.Tapa)}>
+                <Text style={styles.modalItem}>Tapa</Text>
+              </TouchableOpacity>
+              <Button title="Cerrar" onPress={() => setModalVisible(false)} />
+            </View>
+          </View>
+        </Modal>
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Imagen</Text>
+          <Button title="Seleccionar Imagen" onPress={handleImagePick} />
+          {imagePreview && (
+            <Image
+              source={{ uri: imagePreview }}
+              style={{ width: 100, height: 100, marginTop: 10, marginBottom: 5 }} 
+            />
+          )}
+        </View>
+      </ScrollView>
+      <TouchableOpacity style={styles.addButton} onPress={handleAddMenuItem}>
         <Image
-          source={{ uri: imagePreview }}
-          style={{ width: 100, height: 100, marginBottom: 15 }} 
+          source={require('../assets/iconoAdd.png')} 
+          style={styles.addIcon}
         />
-      )}
-    </ScrollView>
-    <TouchableOpacity style={styles.addButton} onPress={handleAddMenuItem}>
-      <Image
-        source={require('../assets/iconoAdd.png')} 
-        style={styles.addIcon}
-      />
-    </TouchableOpacity>
-  </View>
-);
+      </TouchableOpacity>
+      <Toast />
+    </View>
+  );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    padding: 20,
+    justifyContent: 'center',
+    backgroundColor: '#f8f9fa',
   },
   scrollViewContent: {
-    padding: 20,
+    paddingBottom: 40,
   },
   title: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: 'bold',
-    marginBottom: 20,
+    marginBottom: 30,
     textAlign: 'center',
+    color: '#343a40',
+  },
+  inputGroup: {
+    marginBottom: 20,
+  },
+  label: {
+    fontSize: 16,
+    color: '#495057',
+    marginBottom: 5,
   },
   input: {
     borderWidth: 1,
-    borderColor: 'gray',
+    borderColor: '#ced4da',
     borderRadius: 8,
     padding: 10,
     fontSize: 16,
-    marginBottom: 15,
+    backgroundColor: '#fff',
+    color: 'black',
   },
   button: {
     backgroundColor: '#007BFF',
     padding: 10,
     borderRadius: 8,
     alignItems: 'center',
-    marginBottom: 15,
+    marginBottom: 0,
   },
   buttonText: {
     color: '#fff',
@@ -233,7 +297,7 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     width: 300,
-    backgroundColor: 'white',
+    backgroundColor: '#fff',
     borderRadius: 10,
     padding: 20,
     alignItems: 'center',
@@ -258,7 +322,7 @@ const styles = StyleSheet.create({
   addIcon: {
     width: 30,
     height: 30,
-    tintColor: '#fff', 
+    tintColor: '#fff',
   },
 });
 

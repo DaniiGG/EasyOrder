@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useLayoutEffect } from 'react';
-import { View, Text, Image, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, Image, StyleSheet, TextInput,FlatList, ScrollView, TouchableOpacity } from 'react-native';
 import firestore from '@react-native-firebase/firestore';
 import auth from '@react-native-firebase/auth';
 import { useNavigation } from '@react-navigation/native';
@@ -8,7 +8,7 @@ import { FirebaseFirestoreTypes } from '@react-native-firebase/firestore';
 import storage from '@react-native-firebase/storage';
 import { launchImageLibrary } from 'react-native-image-picker';
 import { Picker } from '@react-native-picker/picker';
-
+import Toast from 'react-native-toast-message';
 type RootStackParamList = {
   Login: undefined;
   Home: undefined;
@@ -45,6 +45,10 @@ const MenuInfo = () => {
   const [filter, setFilter] = useState<string>('');
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const user = auth().currentUser;
+
+  const [searchText, setSearchText] = useState('');
+  const [menuItems, setMenuItems] = useState([]); // Your menu items from Firestore or state
+  const [filteredItems, setFilteredItems] = useState([]);
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -88,6 +92,11 @@ const MenuInfo = () => {
         }
       } catch (error) {
         console.error('Error fetching menus:', error);
+        Toast.show({
+          type: 'error',
+          text1: 'Error',
+          text2: 'No se pudieron obtener los menús.',
+        });
       }
     };
 
@@ -113,24 +122,87 @@ const MenuInfo = () => {
     }
   };
 
+  // Filter when searchText changes
+  useEffect(() => {
+    if (searchText.trim() === '') {
+      setFilteredItems(menuItems);
+    } else {
+      setFilteredItems(
+        menuItems.filter(item =>
+          (item as MenuItem).name.toLowerCase().includes(searchText.toLowerCase())
+        )
+      );
+    }
+  }, [searchText, menuItems]);
+
   return (
     <View style={styles.container}>
-      
       <Text style={styles.title}>Menús del Restaurante</Text>
-       <View style={styles.pickerContainer}>
-      <Picker
-        selectedValue={filter}
-        onValueChange={handleFilterChange}
-        style={styles.picker}
-      >
-        <Picker.Item label="Todos" value="" />
-        <Picker.Item label="Entrante" value={DishType.Starter} />
-        <Picker.Item label="Primer Plato" value={DishType.MainCourse} />
-        <Picker.Item label="Segundo Plato" value={DishType.SecondoCourse} />
-        <Picker.Item label="Postre" value={DishType.Dessert} />
-        <Picker.Item label="Bebida" value={DishType.Beverage} />
-        <Picker.Item label="Tapa" value={DishType.Tapa} />
-      </Picker>
+      {/* Search and filter row */}
+      <View style={styles.searchFilterRow}>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Buscar plato..."
+          value={searchText}
+          onChangeText={text => {
+            setSearchText(text);
+            // Filter menus by name as you type
+            if (text.trim() === '') {
+              // If no search, apply only filter
+              if (filter === "") {
+                setFilteredMenus(menus);
+              } else {
+                setFilteredMenus(menus.filter(menu => menu.dishType === filter));
+              }
+            } else {
+              // If searching, filter by name and type
+              setFilteredMenus(
+                menus.filter(menu =>
+                  menu.name.toLowerCase().includes(text.toLowerCase()) &&
+                  (filter === "" || menu.dishType === filter)
+                )
+              );
+            }
+          }}
+          placeholderTextColor="#888"
+        />
+        <View style={styles.pickerWrapper}>
+          <Picker
+            selectedValue={filter}
+            onValueChange={selectedFilter => {
+              setFilter(selectedFilter);
+              // Filter menus by type and search text
+              if (selectedFilter === "") {
+                if (searchText.trim() === '') {
+                  setFilteredMenus(menus);
+                } else {
+                  setFilteredMenus(
+                    menus.filter(menu =>
+                      menu.name.toLowerCase().includes(searchText.toLowerCase())
+                    )
+                  );
+                }
+              } else {
+                setFilteredMenus(
+                  menus.filter(menu =>
+                    menu.dishType === selectedFilter &&
+                    (searchText.trim() === '' ||
+                      menu.name.toLowerCase().includes(searchText.toLowerCase()))
+                  )
+                );
+              }
+            }}
+            style={styles.picker}
+          >
+            <Picker.Item label="Todos" value="" />
+            <Picker.Item label="Entrante" value={DishType.Starter} />
+            <Picker.Item label="Primer Plato" value={DishType.MainCourse} />
+            <Picker.Item label="Segundo Plato" value={DishType.SecondoCourse} />
+            <Picker.Item label="Postre" value={DishType.Dessert} />
+            <Picker.Item label="Bebida" value={DishType.Beverage} />
+            <Picker.Item label="Tapa" value={DishType.Tapa} />
+          </Picker>
+        </View>
       </View>
       <ScrollView>
         {filteredMenus.map((menu, index) => (
@@ -146,11 +218,12 @@ const MenuInfo = () => {
             <View style={styles.menuInfo}>
               <Text style={styles.menuItemText}>Nombre: {menu.name}</Text>
               <Text style={styles.menuItemText}>Tipo: {menu.dishType}</Text>
-              <Text style={styles.menuItemText}>Precio: {menu.price}</Text>
+              <Text style={styles.menuItemText}>Precio: {menu.price} €</Text>
             </View>
           </TouchableOpacity>
         ))}
       </ScrollView>
+      <Toast />
     </View>
   );
 };
@@ -166,6 +239,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 20,
     textAlign: 'center',
+    color: 'black',
   },
   menuItemContainer: {
     flexDirection: 'row',
@@ -186,6 +260,7 @@ const styles = StyleSheet.create({
   menuItemText: {
     fontSize: 16,
     marginBottom: 5,
+    color: 'black',
   },
   addButton: {
     backgroundColor: '#007BFF',
@@ -196,22 +271,33 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
   },
-  pickerContainer: {
+  searchFilterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    gap: 8, // If using RN >= 0.71, otherwise use marginRight on searchInput
+  },
+  searchInput: {
+    flex: 1,
     borderWidth: 1,
-    borderColor: '#111',
-    borderRadius: 10,
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 }, 
-    shadowOpacity: 0.5, 
-    shadowRadius: 8, 
-    elevation: 8, 
+    borderColor: '#ced4da',
+    borderRadius: 8,
+    padding: 8,
+    marginRight: 8,
+    backgroundColor: '#f8f9fa',
+    color: 'black',
+  },
+  pickerWrapper: {
+    flex: 1,
+    minWidth: 120,
+    maxWidth: 180,
     backgroundColor: 'rgb(59, 175, 252)',
+    borderRadius: 10,
+    overflow: 'hidden',
   },
   picker: {
-    height: 'auto',
     width: '100%',
-    color: '#fff', 
+    color: '#fff',
   },
   menuItem: {
     flexDirection: 'row',
