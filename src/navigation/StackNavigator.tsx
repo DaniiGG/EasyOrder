@@ -12,6 +12,7 @@ import AddMenu from '../screens/AddMenu';
 import EditMenu from '../screens/EditMenu';
 import OrderScreen from '../screens/OrderScreen';
 import OrderDetails from '../screens/OrderDetails';
+import UserInfo from '../screens/UserInfo';
 import Toast from 'react-native-toast-message';
 
 
@@ -27,7 +28,7 @@ type RootStackParamList = {
     EditMenu:undefined;
     OrderScreen: undefined;
     OrderDetails: undefined;
-  Profile: { userId: string };
+  UserInfo: { userId: string };
   };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -52,6 +53,7 @@ const StackNavigator = () => {
           <Stack.Screen name="EditMenu" component={EditMenu} />
           <Stack.Screen name="OrderScreen" component={OrderScreen} />
           <Stack.Screen name="OrderDetails" component={OrderDetails} />
+          <Stack.Screen name="UserInfo" component={UserInfo} />
           <Stack.Screen name="Home" component={HomeScreen} options={{ title: "Cargando..." }} />
       </Stack.Navigator>
       <Toast/>

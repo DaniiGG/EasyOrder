@@ -33,8 +33,8 @@ const ResInfo = () => {
   const user = auth().currentUser;
 
   useEffect(() => {
-      navigation.setOptions({ title: "Información" });
-    }, []);
+    navigation.setOptions({ title: "Información" });
+  }, []);
 
   // 🔹 Cargar datos del restaurante si existen
   useEffect(() => {
@@ -47,9 +47,9 @@ const ResInfo = () => {
         const userData = userDoc.data();
 
         if (userData?.role === 'admin') {
-            setIsOwner(true);
+          setIsOwner(true);
         }
-        
+
         const restaurantId = userData?.restaurantId;
         setRestaurantId(restaurantId || null); // <-- Save restaurantId to state
 
@@ -100,7 +100,7 @@ const ResInfo = () => {
     }
     return true;
   };
-  
+
   const handleSaveRestaurant = async () => {
     if (!validateFields()) return;
 
@@ -177,7 +177,7 @@ const ResInfo = () => {
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.title}>Configuración del Restaurante</Text>
-      
+
       <View style={styles.inputGroup}>
         <Text style={styles.label}>Nombre del Restaurante</Text>
         <TextInput
@@ -285,7 +285,9 @@ const ResInfo = () => {
         </View>
       )}
 
-      <Button title="Guardar Restaurante" onPress={handleSaveRestaurant} />
+      <View style={{ marginBottom: 30 }}>
+        <Button title="Guardar Restaurante" onPress={handleSaveRestaurant} />
+      </View>
     </ScrollView>
   );
 };

@@ -195,8 +195,8 @@ const OrderScreen = () => {
             />
             <View style={styles.menuItemDetails}>
               <View>
-                <Text style={{ fontWeight: 'bold'}}>{item.name}</Text>
-                <Text>Precio: {item.price} €</Text>
+                <Text style={{ fontWeight: 'bold', color: 'black'}}>{item.name}</Text>
+                <Text style={{ color: 'black'}}>Precio: {item.price} €</Text>
               </View>
               <View style={styles.quantityRow}>
                 <TouchableOpacity onPress={() => handleSelectItem(item.id, Math.max((selectedItems[item.id] || 0) - 1, 0))}>
@@ -227,6 +227,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 20,
     textAlign: 'center',
+    color: 'black',
   },
   pickerContainer: {
     borderWidth: 1,
@@ -239,6 +240,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8, // Further increase shadow radius
     elevation: 8, // Further increase elevation for Android shadow
     backgroundColor: 'rgb(59, 175, 252)',
+    
   },
   picker: {
     height: 'auto',
@@ -258,6 +260,7 @@ const styles = StyleSheet.create({
     elevation: 3, 
     marginLeft: 5,
     marginRight: 5,
+    color: 'black',
   },
   menuItemImage: {
     width: 50,
@@ -269,6 +272,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     flex: 1,
+    color: 'black',
   },
   quantityRow: {
     flexDirection: 'row',
@@ -282,6 +286,7 @@ const styles = StyleSheet.create({
   quantityText: {
     fontSize: 18,
     marginHorizontal: 10,
+    color: 'black',
   },
 });
 

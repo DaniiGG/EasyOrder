@@ -63,17 +63,19 @@ const MesasInfo = () => {
   }, []);
 
   const addTable = () => {
+    const offset = 30; // Distancia entre mesas
+    const newIndex = tables.length;
     const newTable = {
-      id: `table-${Date.now()}`, // Use a unique ID based on timestamp
+      id: `table-${Date.now()}`,
       numero: `${tables.length + 1}`,
-      position: { x: 0, y: 0 },
+      position: { x: 0 * newIndex, y: offset * newIndex },
       status: 'Libre',
       PedidoId: '',
     };
     setTables([...tables, newTable]);
     setTablePositions({
       ...tablePositions,
-      [newTable.id]: new Animated.ValueXY({ x: 0, y: 0 }),
+      [newTable.id]: new Animated.ValueXY({ x: 0 * newIndex, y: offset * newIndex }),
     });
   };
 
@@ -168,7 +170,7 @@ const MesasInfo = () => {
   };
 
   useEffect(() => {
-    navigation.setOptions({ title: "Mesas" ,
+    navigation.setOptions({ title: "Organización Personalizada" ,
       headerRight: () => (
       <TouchableOpacity onPress={addTable} style={styles.addButton}>
       <Image
@@ -184,7 +186,6 @@ const MesasInfo = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Información de Mesas</Text>
       
 
       <View
@@ -272,10 +273,9 @@ const styles = StyleSheet.create({
   },
   tableZone: {
     width: '100%',
-    height: 500,
+    height: 650,
     backgroundColor: '#f0f0f0',
     position: 'relative',
-    marginVertical: 20,
   },
   removeButton: {
     position: 'absolute',

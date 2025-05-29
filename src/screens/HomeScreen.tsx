@@ -4,7 +4,9 @@ import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useFocusEffect } from '@react-navigation/native';
-import Toast from 'react-native-toast-message'; // <-- Add this import
+import Toast from 'react-native-toast-message'; 
+import { Dimensions } from 'react-native';
+const deviceWidth = Dimensions.get('window').width;
 
 type RootStackParamList = {
   Login: undefined;
@@ -13,7 +15,7 @@ type RootStackParamList = {
   Settings: undefined;
   OrderScreen: { tableId: string };
   OrderDetails:{ orderId: string };
-  Profile: { userId: string };
+  UserInfo: { userId: string };
 };
 
 type HomeScreenProps = NativeStackScreenProps<RootStackParamList, 'Home'>;
@@ -36,8 +38,8 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     setMenuVisible(false);
 
     switch (option) {
-      case 'Profile':
-        navigation.navigate('Profile', { userId: user?.uid || '' });
+      case 'UserInfo':
+        navigation.navigate('UserInfo', { userId: user?.uid || '' });
         break;
       case 'Settings':
         navigation.navigate('Settings');
@@ -222,17 +224,19 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
       <FlatList
         data={tables}
         keyExtractor={item => item.id}
+        style={{width: deviceWidth,backgroundColor: 'rgba(255, 255, 255, 0.68)'}}
         key={useCoordinates ? 'coordinate-layout' : 'column-layout'} // Change key based on layout mode
         renderItem={({ item }) => (
-          <TouchableOpacity onPress={() => handleTableClick(item)}>
+          <TouchableOpacity onPress={() => handleTableClick(item)} style={[useCoordinates? {width: 30}: {}]}>
             <Animated.View
               style={[
-                styles.tableImage,
+                styles.table,
                 useCoordinates
-                  ? { transform: [{ translateX: item.position.x }, { translateY: item.position.y }] }
-                  : {}
+                  ? { transform: [{ translateX: item.position.x }, { translateY: item.position.y }],  }
+                  : { width: '30%'}
               ]}
             >
+              <View style={styles.imageContainer}>
               <Image
                 source={
                   item.status === 'pending'
@@ -244,20 +248,20 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                 style={styles.tableImage}
               />
               <Text style={styles.tableNumber}>Mesa {item.numero}</Text>
+              </View>
             </Animated.View>
           </TouchableOpacity>
         )}
         numColumns={useCoordinates ? 1 : 3} // Use 1 column for coordinate layout, 3 for column layout
       />
 
-      {/* 🔹 Mostrar botón solo si el usuario es dueño y el restaurante no está configurado */}
       {isOwner && !isConfigured && (
         <Button title="Configurar restaurante" onPress={handleSettings} />
       )}
 
       {menuVisible && (
         <View style={styles.menu}>
-          <TouchableOpacity onPress={() => handleOptionPress('Profile')}>
+          <TouchableOpacity onPress={() => handleOptionPress('UserInfo')}>
             <Text style={styles.optionText}>Ver Perfil</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => handleOptionPress('Logout')}>
@@ -325,6 +329,9 @@ const styles = StyleSheet.create({
   tableImage: {
     width: 70,
     height: 70,
+    margin: 10,
+  },
+  table: {
     margin: 10,
   },
   tableNumber: {
