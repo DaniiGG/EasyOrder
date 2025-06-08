@@ -282,7 +282,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   buttonContainer: {
-    marginVertical: 10, // Add some margin to ensure the button is visible
+    marginVertical: 10, 
   },
   imageContainer: {
     position: 'relative',
@@ -329,7 +329,6 @@ const styles = StyleSheet.create({
   tableImage: {
     width: 70,
     height: 70,
-    margin: 10,
   },
   table: {
     margin: 10,

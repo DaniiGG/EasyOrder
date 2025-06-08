@@ -4,6 +4,7 @@ import firestore from '@react-native-firebase/firestore';
 import auth from '@react-native-firebase/auth';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
+import Toast from 'react-native-toast-message'; 
 
 const MesasInfo = () => {
   const [tables, setTables] = useState<{ id: string; position: { x: number, y: number }, numero: string, status: string; PedidoId: string }[]>([]);
@@ -63,7 +64,7 @@ const MesasInfo = () => {
   }, []);
 
   const addTable = () => {
-    const offset = 30; // Distancia entre mesas
+    const offset = -70; // Distancia entre mesas
     const newIndex = tables.length;
     const newTable = {
       id: `table-${Date.now()}`,
@@ -162,10 +163,18 @@ const MesasInfo = () => {
 
       await batchUpdate.commit();
       await batchDelete.commit();
-      Alert.alert('Éxito', 'Cambios guardados correctamente.');
+      Toast.show({
+                type: 'success',
+                text1: 'Éxito',
+                text2: 'Cambios guardados correctamente.',
+              });
     } catch (error) {
       console.error('Error saving table positions:', error);
-      Alert.alert('Error', 'No se pudieron guardar los cambios.');
+      Toast.show({
+                type: 'error',
+                text1: 'Error',
+                text2: 'No se pudieron guardar los cambios.',
+              });
     }
   };
 
@@ -221,6 +230,7 @@ const MesasInfo = () => {
       <View style={styles.saveButton}>
         <Button title="Guardar Posiciones" onPress={saveTablePositions} />
       </View>
+      <Toast/>
     </View>
   );
 };
@@ -249,18 +259,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     textAlign: 'center',
     color: 'black',
-  },
-  addButton: {
-    backgroundColor: '#007BFF',
-    padding: 10,
-    borderRadius: 50,
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: 50,
-    height: 50,
-    position: 'absolute',
-    top: 20,
-    right: 20,
   },
   addButtonText: {
     color: '#fff',

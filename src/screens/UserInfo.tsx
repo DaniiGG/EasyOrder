@@ -34,6 +34,7 @@ const UserInfo = () => {
           name: data?.name || '',
           email: data?.email || '',
           phoneNumber: data?.phoneNumber || '',
+          address: data?.address || '',
         });
       } catch (error) {
         setUserData(null);
@@ -183,6 +184,38 @@ const UserInfo = () => {
           <Image
             source={
               editField === 'phoneNumber'
+                ? require('../assets/iconoGuardar.png')
+                : require('../assets/iconoEditar.png')
+            }
+            style={styles.iconImage}
+            resizeMode="contain"
+          />
+        </TouchableOpacity>
+      </View>
+      <View style={styles.inputRow}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.label}>Dirección:</Text>
+          <TextInput
+            style={[
+              styles.input,
+              editField === 'address' ? styles.inputEnabled : styles.inputDisabled
+            ]}
+            value={fieldValues.address}
+            editable={editField === 'address'}
+            onChangeText={text => setFieldValues({ ...fieldValues, address: text })}
+            placeholder="Dirección"
+            placeholderTextColor="#aaa"
+          />
+        </View>
+        <TouchableOpacity
+          style={styles.iconButton}
+          onPress={() =>
+            editField === 'address' ? handleSave('address') : handleEdit('address')
+          }
+        >
+          <Image
+            source={
+              editField === 'address'
                 ? require('../assets/iconoGuardar.png')
                 : require('../assets/iconoEditar.png')
             }

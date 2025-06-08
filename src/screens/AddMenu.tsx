@@ -7,7 +7,7 @@ import storage from '@react-native-firebase/storage';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import { Image } from 'react-native';
-import Toast from 'react-native-toast-message'; 
+import Toast from 'react-native-toast-message';
 
 enum DishType {
   Starter = 'Entrante',
@@ -28,22 +28,40 @@ const AddMenu = () => {
     allergens: '',
   });
   const [modalVisible, setModalVisible] = useState(false);
-  const [imagePreview, setImagePreview] = useState<string | null>(null); 
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const navigation = useNavigation();
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [touched, setTouched] = useState<{ [key: string]: boolean }>({});
+  const [userRole, setUserRole] = useState<string | null>(null);
 
-  useEffect(() => { 
-    navigation.setOptions({ title: "Añadir menu" });
-  }, []);
+
+
+  useEffect(() => {
+  navigation.setOptions({ title: "Añadir menu" });
+
+  const fetchUserRole = async () => {
+    const user = auth().currentUser;
+    if (!user) return;
+
+    const userDoc = await firestore().collection('users').doc(user.uid).get();
+    const userData = userDoc.data();
+    if (userData?.role) {
+      setUserRole(userData.role);
+    }
+  };
+
+  fetchUserRole();
+}, []);
 
   const handleImagePick = async () => {
     const result = await launchImageLibrary({ mediaType: 'photo' });
 
     if (result.didCancel || !result.assets || result.assets.length === 0) {
       Toast.show({
-          type: 'error',
-          text1: 'Error',
-          text2: 'No se seleccionó ninguna imagen.',
-        });
+        type: 'error',
+        text1: 'Error',
+        text2: 'No se seleccionó ninguna imagen.',
+      });
       return;
     }
 
@@ -78,14 +96,76 @@ const AddMenu = () => {
     }
   };
 
+  const validateField = (field: string, value: string) => {
+  switch (field) {
+    case 'name':
+      if (!value.trim()) return 'El nombre es obligatorio.';
+      break;
+    case 'price':
+      if (!/^\d+(\.\d{1,2})?$/.test(value)) return 'Precio inválido. Usa formato 0.00.';
+      break;
+    case 'image':
+      if (!value) return 'La imagen es obligatoria.';
+      break;
+    case 'allergens':
+      if (!value.trim()) return 'Los alérgenos son obligatorios.';
+      break;
+    case 'dishType':
+      if (!value) return 'El tipo de plato es obligatorio.';
+      break;
+    default:
+      return '';
+  }
+  return '';
+};
+
+
+    const validateFields = () => {
+  const fieldErrors: { [key: string]: string } = {};
+
+  fieldErrors.name = validateField('name', newMenuItem.name);
+  fieldErrors.price = validateField('price', newMenuItem.price);
+  fieldErrors.image = validateField('image', newMenuItem.image);
+  fieldErrors.allergens = validateField('allergens', newMenuItem.allergens);
+  fieldErrors.dishType = validateField('dishType', newMenuItem.dishType);
+
+  setErrors(fieldErrors);
+  setTouched({
+    name: true,
+    price: true,
+    image: true,
+    allergens: true,
+    dishType: true,
+  });
+
+  const hasErrors = Object.values(fieldErrors).some(error => error !== '');
+  if (hasErrors) {
+    Toast.show({
+      type: 'error',
+      text1: 'Error',
+      text2: 'Por favor, completa los campos correctamente.',
+    });
+    return false;
+  }
+  return true;
+};
+
+const handleBlur = (field: string, value: string) => {
+  setTouched({ ...touched, [field]: true });
+  const error = validateField(field, value);
+  setErrors({ ...errors, [field]: error });
+};
+
   const handleSelectDishType = (type: DishType) => {
     setNewMenuItem({ ...newMenuItem, dishType: type });
     setModalVisible(false);
   };
 
   const handleAddMenuItem = async () => {
+    
+    if (!validateFields()) return;
     try {
-      console.log('Menu item to add:', newMenuItem); 
+      console.log('Menu item to add:', newMenuItem);
       const user = auth().currentUser;
       if (!user) {
         Toast.show({
@@ -95,7 +175,7 @@ const AddMenu = () => {
         });
         return;
       }
-  
+
       const userDoc = await firestore().collection('users').doc(user.uid).get();
       const userData = userDoc.data();
       const restaurantId = userData?.restaurantId;
@@ -108,7 +188,7 @@ const AddMenu = () => {
         });
         return;
       }
-  
+
       if (!newMenuItem.image) {
         Toast.show({
           type: 'error',
@@ -117,7 +197,7 @@ const AddMenu = () => {
         });
         return;
       }
-  
+
       await firestore()
         .collection('restaurants')
         .doc(restaurantId)
@@ -126,12 +206,12 @@ const AddMenu = () => {
           ...newMenuItem,
           createdAt: firestore.Timestamp.now(),
         });
-  
-        Toast.show({
-          type: 'success',
-          text1: 'Éxito',
-          text2: 'Elemento del menú añadido correctamente.',
-        });
+
+      Toast.show({
+        type: 'success',
+        text1: 'Éxito',
+        text2: 'Elemento del menú añadido correctamente.',
+      });
     } catch (error) {
       console.error('Error adding menu item:', error);
       Toast.show({
@@ -142,14 +222,14 @@ const AddMenu = () => {
     }
   };
 
-  
+
 
   return (
-    <View style={styles.container}> 
-    
+    <View style={styles.container}>
+
       <ScrollView contentContainerStyle={styles.scrollViewContent}>
         <Text style={styles.title}>Añadir Nuevo Elemento del Menú</Text>
-        
+
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Nombre del Plato</Text>
           <TextInput
@@ -158,7 +238,11 @@ const AddMenu = () => {
             value={newMenuItem.name}
             onChangeText={(text) => setNewMenuItem({ ...newMenuItem, name: text })}
             placeholderTextColor="gray"
+            onBlur={() => handleBlur('name', newMenuItem.name)}
           />
+          {touched.name && errors.name ? (
+  <Text style={styles.errorText}>{errors.name}</Text>
+) : null}
         </View>
 
         <View style={styles.inputGroup}>
@@ -170,18 +254,26 @@ const AddMenu = () => {
             onChangeText={(text) => setNewMenuItem({ ...newMenuItem, price: text })}
             keyboardType="numeric"
             placeholderTextColor="gray"
+            onBlur={() => handleBlur('price', newMenuItem.price)}
           />
+          {touched.price && errors.price ? (
+  <Text style={styles.errorText}>{errors.price}</Text>
+) : null}
         </View>
 
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Alérgenos</Text>
-          <TextInput  
+          <TextInput
             style={styles.input}
             placeholder="Alérgenos"
             value={newMenuItem.allergens}
             onChangeText={(text) => setNewMenuItem({ ...newMenuItem, allergens: text })}
             placeholderTextColor="gray"
+            onBlur={() => handleBlur('allergens', newMenuItem.allergens)}
           />
+          {touched.allergens && errors.allergens ? (
+  <Text style={styles.errorText}>{errors.allergens}</Text>
+) : null}
         </View>
 
         <View style={styles.inputGroup}>
@@ -189,6 +281,9 @@ const AddMenu = () => {
           <TouchableOpacity style={styles.button} onPress={() => setModalVisible(true)}>
             <Text style={styles.buttonText}>{newMenuItem.dishType || 'Seleccionar Tipo de Plato'}</Text>
           </TouchableOpacity>
+          {touched.dishType && errors.dishType ? (
+  <Text style={styles.errorText}>{errors.dishType}</Text>
+) : null}
         </View>
 
         <Modal
@@ -228,14 +323,14 @@ const AddMenu = () => {
           {imagePreview && (
             <Image
               source={{ uri: imagePreview }}
-              style={{ width: 100, height: 100, marginTop: 10, marginBottom: 5 }} 
+              style={{ width: 100, height: 100, marginTop: 10, marginBottom: 5 }}
             />
           )}
         </View>
       </ScrollView>
       <TouchableOpacity style={styles.addButton} onPress={handleAddMenuItem}>
         <Image
-          source={require('../assets/iconoAdd.png')} 
+          source={require('../assets/iconoAdd.png')}
           style={styles.addIcon}
         />
       </TouchableOpacity>
@@ -324,6 +419,12 @@ const styles = StyleSheet.create({
     height: 30,
     tintColor: '#fff',
   },
+  errorText: {
+  color: 'red',
+  fontSize: 13,
+  marginTop: 2,
+  marginLeft: 2,
+},
 });
 
 export default AddMenu;

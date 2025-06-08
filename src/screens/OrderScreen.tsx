@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, Button, StyleSheet, Alert, TouchableOpacity, Image } from 'react-native';
+import { View, Text, FlatList, Button, StyleSheet, Alert, TouchableOpacity, Image, TextInput} from 'react-native';
 import { Picker } from '@react-native-picker/picker'; // Import Picker from dedicated package
 import firestore from '@react-native-firebase/firestore';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import auth from '@react-native-firebase/auth';
+import Toast from 'react-native-toast-message';
 
 type MenuItem = {
   id: string;
@@ -16,6 +17,8 @@ type MenuItem = {
 
 const OrderScreen = () => {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [filteredItems, setFilteredItems] = useState<MenuItem[]>([]); 
+  const [searchText, setSearchText] = useState('');
   const [selectedItems, setSelectedItems] = useState<{ [key: string]: number }>({});
   const [categories, setCategories] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
@@ -58,6 +61,7 @@ const OrderScreen = () => {
         }));
 
         setMenuItems(menuData as MenuItem[]);
+        setFilteredItems(menuData as MenuItem[]);
 
         // Extract unique categories and add "All" option
         const uniqueCategories = Array.from(new Set(menuData.map(item => (item as MenuItem).dishType)));
@@ -71,6 +75,15 @@ const OrderScreen = () => {
 
     fetchMenuItemsAndCategories();
   }, [pedidoId]);
+
+  useEffect(() => {
+    const filtered = menuItems.filter(item => {
+      const matchesCategory = selectedCategory === 'Todos' || item.dishType === selectedCategory;
+      const matchesSearch = item.name.toLowerCase().includes(searchText.toLowerCase());
+      return matchesCategory && matchesSearch;
+    });
+    setFilteredItems(filtered);
+  }, [searchText, selectedCategory, menuItems]);
 
   const handleSelectItem = (itemId: string, quantity: number) => {
     setSelectedItems(prevState => ({
@@ -104,6 +117,15 @@ const OrderScreen = () => {
         return acc;
       }, {} as { [key: string]: number });
 
+      if (Object.keys(filteredItems).length === 0) {
+      Toast.show({
+        type: 'info',
+        text1: 'Sin elementos',
+        text2: 'Debe seleccionar al menos un producto con cantidad mayor a cero.',
+      });
+      return;
+    }
+
       if (pedidoId) {
         // Update existing order using pedidoId
         const orderDoc = await firestore()
@@ -119,9 +141,9 @@ const OrderScreen = () => {
 
           // Sum the new quantities with the existing ones
           for (const itemId in filteredItems) {
-            if (filteredItems.hasOwnProperty(itemId)) {
+           
               updatedItems[itemId] = (currentOrderData.items[itemId] || 0) + filteredItems[itemId];
-            }
+            
           }
 
           await firestore()
@@ -133,9 +155,17 @@ const OrderScreen = () => {
               items: updatedItems,
             });
 
-          Alert.alert('Éxito', 'Pedido actualizado correctamente.');
+          Toast.show({
+                  type: 'success',
+                  text1: 'Éxito',
+                  text2: 'Pedido actualizado correctamente.',
+                });
         } else {
-          Alert.alert('Error', 'No se encontró el pedido existente.');
+          Toast.show({
+                  type: 'error',
+                  text1: 'Error',
+                  text2: 'No se encontró el pedido existente.',
+                });
         }
       } else {
         // Create new order
@@ -160,19 +190,34 @@ const OrderScreen = () => {
           .doc(tableId)
           .update({ status: 'pending', PedidoId: orderRef.id });
 
-        Alert.alert('Éxito', 'Pedido creado correctamente.');
+        Toast.show({
+                  type: 'success',
+                  text1: 'Éxito',
+                  text2: 'Pedido creado correctamente.',
+                });
       }
 
       navigation.goBack();
     } catch (error) {
       console.error('Error creating or updating order:', error);
-      Alert.alert('Error', 'No se pudo crear o actualizar el pedido.');
+      Toast.show({
+                  type: 'error',
+                  text1: 'Error',
+                  text2: 'No se pudo crear o actualizar el pedido.',
+                });
     }
   };
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Seleccionar Elementos del Menú</Text>
+      <TextInput
+        style={styles.searchInput} // ✅ NUEVO
+        placeholder="Buscar por nombre..."
+        value={searchText}
+        onChangeText={setSearchText}
+        placeholderTextColor="#888"
+      />
       <View style={styles.pickerContainer}>
         <Picker
           selectedValue={selectedCategory}
@@ -185,7 +230,7 @@ const OrderScreen = () => {
         </Picker>
       </View>
       <FlatList
-        data={menuItems.filter(item => selectedCategory === 'Todos' || item.dishType === selectedCategory)}
+        data={filteredItems}
         keyExtractor={item => item.id}
         renderItem={({ item }) => (
           <View style={styles.menuItem}>
@@ -212,6 +257,7 @@ const OrderScreen = () => {
         )}
       />
       <Button title="Crear Pedido" onPress={handleCreateOrder} />
+      <Toast/>
     </View>
   );
 };
@@ -287,6 +333,10 @@ const styles = StyleSheet.create({
     fontSize: 18,
     marginHorizontal: 10,
     color: 'black',
+  },
+  searchInput: { // ✅ NUEVO
+    borderWidth: 1, borderColor: '#ced4da', borderRadius: 8, padding: 8, marginBottom: 10,
+    backgroundColor: '#f8f9fa', color: 'black',
   },
 });
 

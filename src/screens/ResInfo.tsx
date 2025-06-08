@@ -4,7 +4,8 @@ import firestore from '@react-native-firebase/firestore';
 import auth from '@react-native-firebase/auth';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import QRCode from 'react-native-qrcode-svg'; // <-- Add this import
+import QRCode from 'react-native-qrcode-svg';
+import Toast from 'react-native-toast-message';
 
 type RootStackParamList = {
   Login: undefined;
@@ -83,19 +84,32 @@ const ResInfo = () => {
       !category.trim() ||
       !hours.trim()
     ) {
-      Alert.alert('Error', 'Por favor, completa todos los campos.');
+
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Por favor, completa todos los campos.',
+      });
       return false;
     }
     // Simple email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      Alert.alert('Error', 'Por favor, introduce un email válido.');
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Por favor, introduce un email válido.',
+      });
       return false;
     }
     // Phone must be exactly 9 digits
     const phoneRegex = /^\d{9}$/;
     if (!phoneRegex.test(phoneNumber)) {
-      Alert.alert('Error', 'Por favor, introduce un teléfono válido de exactamente 9 dígitos.');
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'Por favor, introduce un teléfono válido de exactamente 9 dígitos.',
+      });
       return false;
     }
     return true;
@@ -131,14 +145,26 @@ const ResInfo = () => {
           { merge: true } // Evita sobreescribir datos previos
         );
 
-        Alert.alert('Éxito', 'Datos del restaurante guardados correctamente.');
+        Toast.show({
+          type: 'success',
+          text1: 'Éxito',
+          text2: 'Datos del restaurante guardados correctamente.',
+        });
         navigation.navigate('Home');
       } else {
-        Alert.alert('Error', 'No se pudo encontrar el restaurante asociado a este usuario.');
+        Toast.show({
+          type: 'error',
+          text1: 'Error',
+          text2: 'No se pudo encontrar el restaurante asociado a este usuario.',
+        });
       }
     } catch (error) {
       console.error('Error guardando restaurante:', error);
-      Alert.alert('Error', 'No se pudo guardar la información del restaurante.');
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: 'No se pudo guardar la información del restaurante.',
+      });
     }
   };
 
@@ -175,120 +201,125 @@ const ResInfo = () => {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.title}>Configuración del Restaurante</Text>
 
-      <View style={styles.inputGroup}>
-        <Text style={styles.label}>Nombre del Restaurante</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Nombre del Restaurante"
-          value={restaurantName}
-          onChangeText={setRestaurantName}
-          onBlur={() => handleBlur('restaurantName', restaurantName)}
-          placeholderTextColor="gray"
-          editable={isOwner}
-        />
-        {touched.restaurantName && errors.restaurantName ? (
-          <Text style={styles.errorText}>{errors.restaurantName}</Text>
-        ) : null}
-      </View>
+    <View style={styles.container}>
 
-      <View style={styles.inputGroup}>
-        <Text style={styles.label}>Ubicación</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Ubicación"
-          value={location}
-          onChangeText={setLocation}
-          onBlur={() => handleBlur('location', location)}
-          placeholderTextColor="gray"
-          editable={isOwner}
-        />
-        {touched.location && errors.location ? (
-          <Text style={styles.errorText}>{errors.location}</Text>
-        ) : null}
-      </View>
-
-      <View style={styles.inputGroup}>
-        <Text style={styles.label}>Teléfono</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Teléfono"
-          value={phoneNumber}
-          onChangeText={setPhoneNumber}
-          onBlur={() => handleBlur('phoneNumber', phoneNumber)}
-          keyboardType="phone-pad"
-          placeholderTextColor="gray"
-          editable={isOwner}
-        />
-        {touched.phoneNumber && errors.phoneNumber ? (
-          <Text style={styles.errorText}>{errors.phoneNumber}</Text>
-        ) : null}
-      </View>
-
-      <View style={styles.inputGroup}>
-        <Text style={styles.label}>Email</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Email"
-          value={email}
-          onChangeText={setEmail}
-          onBlur={() => handleBlur('email', email)}
-          keyboardType="email-address"
-          placeholderTextColor="gray"
-          editable={isOwner}
-        />
-        {touched.email && errors.email ? (
-          <Text style={styles.errorText}>{errors.email}</Text>
-        ) : null}
-      </View>
-
-      <View style={styles.inputGroup}>
-        <Text style={styles.label}>Categoría</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Categoría (Ej: Mexicana, Italiana, etc.)"
-          value={category}
-          onChangeText={setCategory}
-          onBlur={() => handleBlur('category', category)}
-          placeholderTextColor="gray"
-          editable={isOwner}
-        />
-        {touched.category && errors.category ? (
-          <Text style={styles.errorText}>{errors.category}</Text>
-        ) : null}
-      </View>
-
-      <View style={styles.inputGroup}>
-        <Text style={styles.label}>Horario</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Horario (Ej: Lunes-Viernes 9:00-18:00)"
-          value={hours}
-          onChangeText={setHours}
-          onBlur={() => handleBlur('hours', hours)}
-          placeholderTextColor="gray"
-          editable={isOwner}
-        />
-        {touched.hours && errors.hours ? (
-          <Text style={styles.errorText}>{errors.hours}</Text>
-        ) : null}
-      </View>
-
-      {/* QR Code Section */}
-      {restaurantId && (
-        <View style={styles.qrContainer}>
-          <Text style={styles.qrLabel}>Código QR del Restaurante</Text>
-          <QRCode value={restaurantId} size={180} />
-          <Text style={styles.qrIdText}>ID: {restaurantId}</Text>
+      <ScrollView >
+        <Text style={styles.title}>Configuración del Restaurante</Text>
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Nombre del Restaurante</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Nombre del Restaurante"
+            value={restaurantName}
+            onChangeText={setRestaurantName}
+            onBlur={() => handleBlur('restaurantName', restaurantName)}
+            placeholderTextColor="gray"
+            editable={isOwner}
+          />
+          {touched.restaurantName && errors.restaurantName ? (
+            <Text style={styles.errorText}>{errors.restaurantName}</Text>
+          ) : null}
         </View>
-      )}
 
-      <View style={{ marginBottom: 30 }}>
-        <Button title="Guardar Restaurante" onPress={handleSaveRestaurant} />
-      </View>
-    </ScrollView>
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Ubicación</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Ubicación"
+            value={location}
+            onChangeText={setLocation}
+            onBlur={() => handleBlur('location', location)}
+            placeholderTextColor="gray"
+            editable={isOwner}
+          />
+          {touched.location && errors.location ? (
+            <Text style={styles.errorText}>{errors.location}</Text>
+          ) : null}
+        </View>
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Teléfono</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Teléfono"
+            value={phoneNumber}
+            onChangeText={setPhoneNumber}
+            onBlur={() => handleBlur('phoneNumber', phoneNumber)}
+            keyboardType="phone-pad"
+            placeholderTextColor="gray"
+            editable={isOwner}
+          />
+          {touched.phoneNumber && errors.phoneNumber ? (
+            <Text style={styles.errorText}>{errors.phoneNumber}</Text>
+          ) : null}
+        </View>
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Email</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Email"
+            value={email}
+            onChangeText={setEmail}
+            onBlur={() => handleBlur('email', email)}
+            keyboardType="email-address"
+            placeholderTextColor="gray"
+            editable={isOwner}
+          />
+          {touched.email && errors.email ? (
+            <Text style={styles.errorText}>{errors.email}</Text>
+          ) : null}
+        </View>
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Categoría</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Categoría (Ej: Mexicana, Italiana, etc.)"
+            value={category}
+            onChangeText={setCategory}
+            onBlur={() => handleBlur('category', category)}
+            placeholderTextColor="gray"
+            editable={isOwner}
+          />
+          {touched.category && errors.category ? (
+            <Text style={styles.errorText}>{errors.category}</Text>
+          ) : null}
+        </View>
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Horario</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Horario (Ej: Lunes-Viernes 9:00-18:00)"
+            value={hours}
+            onChangeText={setHours}
+            onBlur={() => handleBlur('hours', hours)}
+            placeholderTextColor="gray"
+            editable={isOwner}
+          />
+          {touched.hours && errors.hours ? (
+            <Text style={styles.errorText}>{errors.hours}</Text>
+          ) : null}
+        </View>
+
+        {/* QR Code Section */}
+        {restaurantId && (
+          <View style={styles.qrContainer}>
+            <Text style={styles.qrLabel}>Código QR del Restaurante</Text>
+            <QRCode value={restaurantId} size={180} />
+            <Text style={styles.qrIdText}>ID: {restaurantId}</Text>
+          </View>
+        )}
+
+        <View style={{ marginBottom: 30 }}>
+          <Button title="Guardar Restaurante" onPress={handleSaveRestaurant} />
+        </View>
+
+      </ScrollView>
+      <Toast />
+    </View>
   );
 };
 

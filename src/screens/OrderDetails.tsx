@@ -233,7 +233,6 @@ const OrderDetails = () => {
         .doc(order.tableId)
         .update({ status: tableStatus });
   
-      Alert.alert('Éxito', `Estado actualizado a ${orderStatus}.`);
       Toast.show({
         type: 'success',
         text1: 'Éxito',
@@ -242,7 +241,11 @@ const OrderDetails = () => {
       navigation.goBack(); // Return to previous screen after status update
     } catch (error) {
       console.error('Error updating status:', error);
-      Alert.alert('Error', 'No se pudo actualizar el estado.');
+      Toast.show({
+          type: 'error',
+          text1: 'Error',
+          text2: 'No se pudo actualizar el estado.',
+        });
     }
   };
 

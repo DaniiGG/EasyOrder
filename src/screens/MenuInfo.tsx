@@ -49,22 +49,37 @@ const MenuInfo = () => {
   const [searchText, setSearchText] = useState('');
   const [menuItems, setMenuItems] = useState([]); // Your menu items from Firestore or state
   const [filteredItems, setFilteredItems] = useState([]);
+  const [userRole, setUserRole] = useState<string | null>(null);
 
-  useLayoutEffect(() => {
-    navigation.setOptions({
-      title: `Menus`,
-      headerRight: () => (
+ useLayoutEffect(() => {
+  navigation.setOptions({
+    title: 'Menus',
+    headerRight: () =>
+      userRole === 'admin' ? (
         <TouchableOpacity onPress={() => navigation.navigate('AddMenu')} style={styles.addButton}>
           <Image
               source={require('../assets/iconoAdd.png')}
               style={{ width: 30, height: 30, borderRadius: 5 }}
             />
         </TouchableOpacity>
-      ),
-    });
-  }, [navigation]);
+      ) : null,
+  });
+}, [navigation, userRole]);
+
 
   useEffect(() => {
+     const fetchUserRole = async () => {
+    const user = auth().currentUser;
+    if (!user) return;
+
+    const userDoc = await firestore().collection('users').doc(user.uid).get();
+    const userData = userDoc.data();
+    if (userData?.role) {
+      setUserRole(userData.role);
+    }
+  };
+
+  fetchUserRole();
     const fetchMenus = async () => {
       if (!user) return;
 
@@ -109,6 +124,14 @@ const MenuInfo = () => {
   }, [navigation, user]);
 
   const navigateToEditMenu = (menuId: string) => {
+     if (userRole !== 'admin') {
+    Toast.show({
+      type: 'error',
+      text1: 'Acceso denegado',
+      text2: 'Solo los administradores pueden añadir menú.',
+    });
+    return;
+  }
     navigation.navigate('EditMenu', { menuId });
   };
 
