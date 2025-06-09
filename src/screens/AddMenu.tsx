@@ -401,6 +401,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     padding: 10,
     textAlign: 'center',
+    color: 'black'
   },
   addButton: {
     position: 'absolute',

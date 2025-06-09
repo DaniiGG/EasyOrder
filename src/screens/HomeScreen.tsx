@@ -221,6 +221,9 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           ios_backgroundColor="#d1d1d1"
         />
       </View>
+      {isOwner && !isConfigured && (
+        <Button title="Configurar restaurante" onPress={handleSettings} />
+      )}
       <FlatList
         data={tables}
         keyExtractor={item => item.id}
@@ -236,6 +239,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                   : { width: '30%'}
               ]}
             >
+              
               <View style={styles.imageContainer}>
               <Image
                 source={
@@ -253,11 +257,10 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           </TouchableOpacity>
         )}
         numColumns={useCoordinates ? 1 : 3} // Use 1 column for coordinate layout, 3 for column layout
+        
       />
 
-      {isOwner && !isConfigured && (
-        <Button title="Configurar restaurante" onPress={handleSettings} />
-      )}
+      
 
       {menuVisible && (
         <View style={styles.menu}>
