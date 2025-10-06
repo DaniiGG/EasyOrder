@@ -1,3 +1,11 @@
+
+<img width="383" height="772" alt="image" src="https://github.com/user-attachments/assets/855a6208-93d8-46d2-9d3d-33993dbb2b42" />
+
+Documentación completa:
+
+[EasyOrder_Documentación_Completa.pdf](https://github.com/user-attachments/files/22720312/EasyOrder_Documentacion_Completa.pdf)
+
+
 This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
 
 # Getting Started
